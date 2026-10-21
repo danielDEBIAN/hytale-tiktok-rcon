@@ -1,0 +1,56 @@
+# ====================================================
+# Credenciales y variables de entorno (Información delicada)
+# ====================================================
+.env
+.env.*
+!.env.example
+
+# ====================================================
+# Secretos, llaves, certificados y sesiones de TikTok/RCON
+# ====================================================
+*.pem
+*.key
+*.crt
+*.cert
+*secret*
+*credentials*
+cookies.json
+session.json
+
+# ====================================================
+# Archivos de servidor de Hytale y configuración RCON
+# (Por si instalas el servidor dentro de esta carpeta)
+# ====================================================
+server/
+hytale-server/
+HytaleServer.jar
+Assets.zip
+**/HyRCON/config.json
+**/rcon.json
+**/auth.enc
+**/oauth*
+
+# ====================================================
+# Contexto local del asistente IA
+# ====================================================
+GEMINI.md
+.gemini/
+
+# ====================================================
+# Dependencias y registros (Node.js)
+# ====================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# ====================================================
+# Archivos del sistema operativo y editores
+# ====================================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
