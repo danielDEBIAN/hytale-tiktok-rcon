@@ -1,0 +1,8 @@
+{
+  "Group": "TikTokBridge",
+  "Name": "HyRCON",
+  "Version": "1.0.0",
+  "Description": "Servidor RCON local 100% gratuito para conectar TikTok Live con Hytale",
+  "Main": "com.daniel.hyrcon.HyRconPlugin",
+  "ServerVersion": "*"
+}

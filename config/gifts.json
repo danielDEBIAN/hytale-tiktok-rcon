@@ -1,46 +1,46 @@
 {
-  "_comment": "Variables disponibles en los comandos: {player} (tu usuario en Hytale), {user} (quien envió el regalo en TikTok), {giftName} (nombre del regalo), {repeatCount} (cantidad enviada en combo).",
+  "_comment": "Variables disponibles en los comandos: {player} (tu usuario en Hytale), {user} (quien envió el regalo en TikTok), {giftName} (nombre del regalo), {repeatCount} (cantidad enviada en combo). El prefijo 'as {player}' ejecuta el comando en la posición exacta del jugador dentro del mundo.",
   "gifts": {
     "Rose": {
-      "description": "Da una manzana o ítem curativo básico al jugador",
+      "description": "Da un pay de manzana curativo al jugador",
       "scaleWithCombo": true,
       "commands": [
-        "say ¡{user} envió {repeatCount}x Rosa! Dando comida a {player}.",
-        "give {player} hytale:apple 1"
+        "say [TikTok] ¡{user} envió {repeatCount}x Rosa! Dando comida a {player}.",
+        "give {player} Food_Pie_Apple"
       ]
     },
     "GG": {
       "description": "Spawnea un Esqueleto cerca del jugador",
       "scaleWithCombo": true,
       "commands": [
-        "say ¡{user} envió {repeatCount}x GG! ¡Un Esqueleto aparece!",
-        "spawn entity hytale:skeleton {player}"
+        "say [TikTok] ¡{user} envió {repeatCount}x GG! ¡Un Esqueleto aparece!",
+        "as {player} npc spawn Skeleton"
       ]
     },
     "Finger Heart": {
       "description": "Da una espada de hierro al jugador",
       "scaleWithCombo": false,
       "commands": [
-        "say ¡{user} envió un Corazón! {player} recibe una espada.",
-        "give {player} hytale:iron_sword 1"
+        "say [TikTok] ¡{user} envió un Corazón! {player} recibe una Espada de Hierro.",
+        "give {player} Weapon_Sword_Iron"
       ]
     },
     "Doughnut": {
       "description": "Spawnea una horda de 3 Trorks enemigos",
       "scaleWithCombo": true,
       "commands": [
-        "say ¡ALERTA! ¡{user} lanzó una Dona! ¡Aparecen 3 Trorks!",
-        "spawn entity hytale:trork_warrior {player}",
-        "spawn entity hytale:trork_warrior {player}",
-        "spawn entity hytale:trork_hunter {player}"
+        "say [TikTok] ¡ALERTA! ¡{user} lanzó una Dona! ¡Aparecen 3 Trorks!",
+        "as {player} npc spawn Trork_Warrior",
+        "as {player} npc spawn Trork_Warrior",
+        "as {player} npc spawn Trork_Hunter"
       ]
     },
     "Corgi": {
-      "description": "Jefe o enemigo peligroso (Crawler / Void Spawn)",
+      "description": "Jefe o enemigo peligroso (Shadow Knight)",
       "scaleWithCombo": false,
       "commands": [
-        "say ¡PELIGRO EXTREMO! ¡{user} invocó un Jefe del Vacío para {player}!",
-        "spawn entity hytale:void_spawn {player}"
+        "say [TikTok] ¡PELIGRO EXTREMO! ¡{user} invocó un Caballero de las Sombras para {player}!",
+        "as {player} npc spawn Shadow_Knight"
       ]
     }
   },
@@ -49,15 +49,15 @@
       "enabled": true,
       "everyLikes": 100,
       "commands": [
-        "say ¡Llegamos a otros 100 Likes gracias a {user}! Curando a {player}.",
-        "give {player} hytale:healing_potion 1"
+        "say [TikTok] ¡Llegamos a otros 100 Likes gracias a {user}! Curando a {player}.",
+        "give {player} Potion_Health"
       ]
     },
     "follow": {
       "enabled": true,
       "commands": [
-        "say ¡Gracias por seguir el canal, {user}! Spawneando un enemigo sorpresa...",
-        "spawn entity hytale:goblin {player}"
+        "say [TikTok] ¡Gracias por seguir el canal, {user}! Spawneando un Goblin sorpresa...",
+        "as {player} npc spawn Dungeon_Goblin_Scrapper"
       ]
     }
   },
@@ -65,8 +65,8 @@
     "enabled": true,
     "description": "Acción por defecto si envían un regalo que no está en la lista",
     "commands": [
-      "say ¡Gracias {user} por enviar {repeatCount}x {giftName}!",
-      "spawn entity hytale:skeleton {player}"
+      "say [TikTok] ¡Gracias {user} por enviar {repeatCount}x {giftName}!",
+      "as {player} npc spawn Skeleton"
     ]
   }
 }

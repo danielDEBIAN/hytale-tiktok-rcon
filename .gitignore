@@ -27,6 +27,7 @@ HytaleServer.jar
 Assets.zip
 **/HyRCON/config.json
 **/rcon.json
+**/rcon.properties
 **/auth.enc
 **/oauth*
 
