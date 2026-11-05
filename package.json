@@ -9,8 +9,8 @@
     "gui": "node src/guiServer.js",
     "app": "bash ./launch-app.sh",
     "desktop": "electron src/electronMain.js",
-    "dist:linux": "npx electron-builder --linux AppImage",
-    "dist:win": "npx electron-builder --win portable",
+    "dist:linux": "npx electron-builder --linux AppImage --publish never",
+    "dist:win": "npx electron-builder --win portable --publish never",
     "simulate": "node src/simulate.js",
     "build:plugin": "mkdir -p plugin-src/build && javac -cp ~/hytale-server/HytaleServer.jar -d plugin-src/build plugin-src/com/daniel/hyrcon/HyRconPlugin.java && cp plugin-src/manifest.json plugin-src/build/manifest.json && jar cf plugin-src/HyRCON.jar -C plugin-src/build . && cp plugin-src/HyRCON.jar ~/hytale-server/mods/HyRCON.jar && rm -rf plugin-src/build"
   },

@@ -32,7 +32,7 @@ jobs:
 
       - name: Build Linux AppImage & Windows Portable EXE
         run: |
-          npx electron-builder --linux AppImage --win portable
+          npx electron-builder --linux AppImage --win portable --publish never
           for f in dist/*.exe; do [ -f "$f" ] && mv "$f" dist/HytaleTikTokLive-Windows-Portable.exe; done
           for f in dist/*.AppImage; do [ -f "$f" ] && mv "$f" dist/HytaleTikTokLive-Linux.AppImage; done
 
