@@ -1,6 +1,6 @@
 {
   "name": "hytale-tiktok-rcon",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Puente gratuito entre TikTok Live y Hytale mediante RCON para spawnear enemigos y dar objetos.",
   "type": "module",
   "main": "src/electronMain.js",
@@ -30,13 +30,13 @@
         "AppImage"
       ],
       "category": "Game",
-      "icon": "public/icon.svg"
+      "icon": "public/icon.png"
     },
     "win": {
       "target": [
         "portable"
       ],
-      "icon": "public/icon.svg"
+      "icon": "public/icon.png"
     }
   },
   "dependencies": {
