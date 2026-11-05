@@ -27,13 +27,23 @@
     </div>
 
     <div class="topbar-settings">
-      <div class="setting-field">
+      <div class="setting-field" id="playerFieldWrap" data-tooltip="👤 Jugador Hytale: Escribe tu nombre exacto dentro del servidor de Hytale">
         <label for="envPlayerName">👤 Jugador Hytale</label>
-        <input type="text" id="envPlayerName" placeholder="PaletaChupada" />
+        <input
+          type="text"
+          id="envPlayerName"
+          placeholder="Ej. TuNombreEnHytale"
+          title="👤 Jugador Hytale — Escribe aquí tu nombre de usuario dentro del juego (ej. TuNombreEnHytale)"
+        />
       </div>
-      <div class="setting-field">
+      <div class="setting-field" id="tiktokFieldWrap" data-tooltip="🎥 Usuario TikTok: Escribe el @usuario de la cuenta que transmitirá en TikTok Live">
         <label for="envTiktokUser">🎥 Usuario TikTok</label>
-        <input type="text" id="envTiktokUser" placeholder="@usuario" />
+        <input
+          type="text"
+          id="envTiktokUser"
+          placeholder="Ej. @tu_usuario_tiktok"
+          title="🎥 Usuario TikTok — Escribe aquí tu cuenta de TikTok Live (ej. @tu_usuario_tiktok)"
+        />
       </div>
       <div class="setting-field toggle-field">
         <label for="envMockMode">🛠️ Modo RCON</label>
@@ -82,16 +92,22 @@
       <button type="button" class="tab-btn" data-tab="mobs">
         👾 Catálogo de Mobs Hytale <span id="mobsCountBadge" class="badge">...</span>
       </button>
+      <button type="button" class="tab-btn" data-tab="items">
+        🗡️ Catálogo de Ítems Hytale <span id="itemsCountBadge" class="badge">...</span>
+      </button>
       <button type="button" class="tab-btn" data-tab="gifts">
         🎁 Catálogo de Regalos TikTok <span id="giftsCountBadge" class="badge">...</span>
       </button>
       <button type="button" class="tab-btn" data-tab="server">
         🏰 Servidor Hytale (Control y Ajustes)
       </button>
+      <button type="button" class="tab-btn" data-tab="help">
+        📖 Guía y Ayuda
+      </button>
     </div>
     <div class="tabs-right">
       <button type="button" id="newRuleBtn" class="btn btn-primary">
-        ➕ Nueva Regla (Regalo / Mob)
+        ➕ Nueva Regla (Mob o Ítem)
       </button>
     </div>
   </nav>
@@ -135,6 +151,21 @@
         </button>
       </div>
       <div id="mobsCatalogGrid" class="entity-grid"></div>
+    </section>
+
+    <!-- TAB 2.5: CATÁLOGO DE ÍTEMS HYTALE -->
+    <section id="tab-items" class="tab-panel">
+      <div class="catalog-toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="itemCatalogSearch" placeholder="Buscar ítem por nombre o ID de comando (ej. Sword, Armor_Adamantite, Food_Pie_Apple, Potion)..." />
+        </div>
+        <div class="filter-pills" id="itemCategoryPills"></div>
+        <button type="button" id="refreshItemsBtn" class="btn btn-secondary btn-sm" title="Actualizar desde hytaleguide.net/items y Assets.zip">
+          🔄 Sincronizar Ítems
+        </button>
+      </div>
+      <div id="itemsCatalogGrid" class="entity-grid"></div>
     </section>
 
     <!-- TAB 3: CATÁLOGO DE REGALOS TIKTOK -->
@@ -217,7 +248,7 @@
           <pre id="hytaleConsoleBox" class="console-log-box">Cargando registros del servidor...</pre>
 
           <form id="consoleCommandForm" class="console-input-row">
-            <input type="text" id="consoleCommandInput" placeholder="Escribe un comando de servidor Hytale (ej. op add PaletaChupada, say Hola, plugin list)..." />
+            <input type="text" id="consoleCommandInput" placeholder="Escribe un comando de servidor Hytale (ej. op add TuNombreEnHytale, say Hola, plugin list)..." />
             <button type="submit" class="btn btn-primary btn-sm">Enviar Comando</button>
           </form>
         </div>
@@ -316,6 +347,278 @@
         </div>
       </div>
     </section>
+
+    <!-- TAB 5: DOCUMENTACIÓN, GUÍA DE USO Y SECCIÓN DE AYUDA -->
+    <section id="tab-help" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <h2>📖 Documentación Oficial y Centro de Ayuda</h2>
+          <p>Aprende cómo conectar tu directo de TikTok Live con tu servidor de Hytale paso a paso, usar comandos y resolver cualquier duda.</p>
+        </div>
+      </div>
+
+      <!-- PASO A PASO RÁPIDO (4 PASOS) -->
+      <div class="docs-section-block">
+        <div class="step-badge">🚀 Inicio Rápido en 4 Pasos</div>
+        <div class="docs-steps-grid">
+          <div class="docs-step-card">
+            <div class="docs-step-num">1</div>
+            <h3>Configura tu Carpeta del Servidor</h3>
+            <p>
+              Ve a la pestaña <strong>🏰 Servidor Hytale</strong>, selecciona la carpeta donde están tus archivos <code>HytaleServer.jar</code> y <code>Assets.zip</code>, y haz clic en <strong>⚡ Instalar / Actualizar Mod HyRCON.jar</strong>.
+            </p>
+          </div>
+
+          <div class="docs-step-card">
+            <div class="docs-step-num">2</div>
+            <h3>Define tu Jugador y Usuario TikTok</h3>
+            <p>
+              En la barra superior escribe tu nombre de usuario dentro del juego en <strong>👤 Jugador Hytale</strong> y tu cuenta en <strong>🎥 Usuario TikTok</strong>. Luego presiona <strong>💾 Guardar Ajustes</strong>.
+            </p>
+          </div>
+
+          <div class="docs-step-card">
+            <div class="docs-step-num">3</div>
+            <h3>Inicia el Servidor y Entra al Mundo</h3>
+            <p>
+              Haz clic en <strong>▶️ Iniciar Servidor Hytale</strong>. Abre tu juego Hytale, entra en <strong>Multijugador → Conexión Directa</strong> a <code>127.0.0.1:5520</code> y presiona <strong>👑 Dar OP a mi Jugador</strong>.
+            </p>
+          </div>
+
+          <div class="docs-step-card">
+            <div class="docs-step-num">4</div>
+            <h3>Crea tus Reglas y ¡Prueba en Vivo!</h3>
+            <p>
+              Asigna qué <strong>Mobs</strong> spawnean o qué <strong>Ítems</strong> se entregan con cada regalo de TikTok. Usa el botón <strong>⚡ Probar en Hytale</strong> en cualquier momento para verificarlo dentro del juego.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOCUMENTACIÓN DE CADA SECCIÓN DE LA APLICACIÓN + REFERENCIA DE COMANDOS -->
+      <div class="docs-two-col">
+        <!-- Columna Izquierda: Guía de Pestañas -->
+        <div class="server-panel-card">
+          <div class="panel-card-header">
+            <h3>🧭 Guía de Secciones de la Aplicación</h3>
+          </div>
+
+          <div class="docs-list">
+            <div class="docs-item">
+              <h4>🎛️ 1. Mis Reglas Configuradas</h4>
+              <p>
+                Es tu panel principal de eventos activos. Aquí ves todos los regalos de TikTok que ya tienen asignado un <strong>Mob</strong> o un <strong>Ítem</strong>, además de los 3 eventos especiales del directo:
+              </p>
+              <ul>
+                <li><strong>➕ Nuevo Seguidor (Follow):</strong> Se ejecuta cuando alguien sigue tu cuenta en vivo.</li>
+                <li><strong>❤️ Meta de Likes:</strong> Se activa automáticamente cada cierta cantidad de Likes acumulados (ej. cada 100 Likes).</li>
+                <li><strong>🎲 Regalo por Defecto:</strong> Acción comodín cuando te envían un regalo que no tiene su propia regla.</li>
+              </ul>
+            </div>
+
+            <div class="docs-item">
+              <h4>👾 2. Catálogo de Mobs Hytale (281+ Criaturas)</h4>
+              <p>
+                Explora todas las criaturas de Orbis sincronizadas desde <code>hytaleguide.net/mobs</code> y verificadas contra tu <code>Assets.zip</code>.
+              </p>
+              <ul>
+                <li><strong>⚡ Spawnear:</strong> Invoca inmediatamente ese Mob en la posición exacta de tu jugador dentro del mundo.</li>
+                <li><strong>🎯 Asignar:</strong> Abre el editor de reglas con ese Mob preseleccionado para vincularlo a un regalo de TikTok.</li>
+              </ul>
+            </div>
+
+            <div class="docs-item">
+              <h4>🗡️ 3. Catálogo de Ítems Hytale (3,873+ Objetos)</h4>
+              <p>
+                Incluye todas las armas, armaduras, herramientas, comida, pociones y bloques de <code>hytaleguide.net/items</code> con su ilustración oficial y su ID de comando real.
+              </p>
+              <ul>
+                <li><strong>⚡ Dar Ítem:</strong> Entrega el objeto al instante en el inventario de tu jugador (<code>give {player} &lt;ItemID&gt;</code>).</li>
+                <li><strong>🎯 Asignar:</strong> Permite que tus espectadores te regalen armas, comida curativa o armaduras cuando envían regalos o likes.</li>
+              </ul>
+            </div>
+
+            <div class="docs-item">
+              <h4>🎁 4. Catálogo de Regalos TikTok (1,690+ Regalos)</h4>
+              <p>
+                Filtra regalos por su precio en monedas (<code>1 moneda</code>, <code>2-10</code>, <code>11-99</code>, <code>100-999</code>, <code>1000+</code>) y haz clic en <strong>➕ Asignar Mob</strong> para elegir qué ocurre cuando lo envían.
+              </p>
+            </div>
+
+            <div class="docs-item">
+              <h4>🏰 5. Servidor Hytale (Control, Consola y Ajustes)</h4>
+              <p>
+                Inicia o detén el servidor dedicado sin usar la terminal, monitorea la consola en tiempo real, cambia la hora/clima con un clic y edita visualmente el modo de juego (<em>Adventure / Creative</em>), PvP, daño por caída y memoria RAM Java.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Comandos RCON y Variables Dinámicas -->
+        <div class="server-panel-card">
+          <div class="panel-card-header">
+            <h3>⌨️ Referencia de Comandos y Variables</h3>
+          </div>
+
+          <div class="docs-list">
+            <div class="docs-item">
+              <h4>🔄 Variables Dinámicas Disponibles</h4>
+              <p>Puedes usar estas variables en los mensajes del chat y comandos personalizados; se reemplazan automáticamente en cada evento:</p>
+              <div class="docs-code-table">
+                <div><code>{player}</code> <span>Nombre de tu jugador en Hytale configurado en la barra superior</span></div>
+                <div><code>{user}</code> <span>Nombre del espectador en TikTok que envió el regalo/follow</span></div>
+                <div><code>{giftName}</code> <span>Nombre del regalo enviado en TikTok (ej. <em>Rose</em>, <em>Corgi</em>)</span></div>
+                <div><code>{repeatCount}</code> <span>Cantidad de regalos enviados en racha/combo (ej. <em>5</em>)</span></div>
+              </div>
+            </div>
+
+            <div class="docs-item">
+              <h4>⚔️ Comandos Principales en Hytale (HyRCON)</h4>
+              <div class="docs-code-table">
+                <div>
+                  <code>as {player} npc spawn &lt;RoleID&gt;</code>
+                  <span>Spawnea un Mob exactamente en la posición donde está tu jugador (ej. <code>as {player} npc spawn Goblin_Lobber</code>).</span>
+                </div>
+                <div>
+                  <code>give {player} &lt;ItemID&gt;</code>
+                  <span>Entrega 1 unidad de un ítem al inventario del jugador (ej. <code>give {player} Weapon_Sword_Steel</code>).</span>
+                </div>
+                <div>
+                  <code>give {player} &lt;ItemID&gt; --quantity &lt;N&gt;</code>
+                  <span>Entrega múltiples unidades de un ítem (ej. <code>give {player} Food_Pie_Apple --quantity 5</code>).</span>
+                </div>
+                <div>
+                  <code>say &lt;Mensaje&gt;</code>
+                  <span>Anuncia un mensaje global en el chat del servidor de Hytale.</span>
+                </div>
+                <div>
+                  <code>op add &lt;Jugador&gt;</code>
+                  <span>Otorga permisos de Operador (Administrador) a tu jugador.</span>
+                </div>
+                <div>
+                  <code>time set day | noon | night</code>
+                  <span>Cambia la hora del mundo instantáneamente.</span>
+                </div>
+                <div>
+                  <code>weather set clear</code>
+                  <span>Despeja la lluvia o tormenta en el mundo actual.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="docs-item">
+              <h4>🔥 ¿Cómo funciona "Escalar con Combo"?</h4>
+              <p>
+                Cuando un regalo tiene activada la casilla <strong>🔥 Escalar con Combo</strong>, si un espectador envía un combo de <code>10x Rose</code>, la aplicación espera a que termine la racha para no duplicar eventos, anuncia el mensaje en el chat una sola vez y ejecuta la acción <strong>10 veces</strong> (límite de seguridad de 20x por combo para evitar crasheos).
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN DE AYUDA Y SOLUCIÓN DE PROBLEMAS FRECUENTES (FAQ) -->
+      <div class="docs-section-block mt-lg">
+        <div class="step-badge">🛠️ Centro de Ayuda y Solución de Problemas Frecuentes (FAQ)</div>
+        <div class="faq-grid">
+          <div class="faq-card">
+            <h4>❓ Hago clic en "⚡ Probar en Hytale" pero no aparece nada en el juego</h4>
+            <p>Verifica estos 3 puntos rápidos:</p>
+            <ol>
+              <li>Que el servidor de Hytale esté encendido (el indicador izquierdo debe decir <strong>🟢 Servidor de Hytale y RCON Activos</strong>).</li>
+              <li>Que el botón de la esquina superior derecha diga <strong>🟢 RCON REAL ACTIVO</strong> (si dice <em>🧪 SIMULADOR</em>, hazle clic para cambiarlo a modo Real).</li>
+              <li>Que <strong>ya hayas entrado dentro del mundo</strong> con tu personaje en <code>127.0.0.1:5520</code> y que el campo <strong>👤 Jugador Hytale</strong> coincida con tu nombre de usuario.</li>
+            </ol>
+          </div>
+
+          <div class="faq-card">
+            <h4>❓ ¿De dónde obtengo los archivos del servidor (<code>HytaleServer.jar</code> y <code>Assets.zip</code>)?</h4>
+            <p>
+              El servidor dedicado requiere Java 25 (OpenJDK 25) y los archivos oficiales del servidor de Hytale (<code>HytaleServer.jar</code> y <code>Assets.zip</code>). Una vez los tengas en una carpeta (por ejemplo <code>~/hytale-server</code> o <code>C:\hytale-server</code>), selecciónala en la pestaña <strong>🏰 Servidor Hytale</strong> y presiona <strong>⚡ Instalar / Actualizar Mod HyRCON.jar</strong>.
+            </p>
+          </div>
+
+          <div class="faq-card">
+            <h4>❓ El estado de TikTok Live dice "Usuario fuera de línea (No está en LIVE)"</h4>
+            <p>
+              ¡Es completamente normal si aún no has iniciado transmisión en TikTok! TikTok solo activa la sala de eventos Webcast cuando estás en vivo. Mientras tanto, puedes configurar todas tus reglas y probarlas en tu partida usando los botones <strong>⚡ Probar en Hytale</strong>, <strong>⚡ Spawnear</strong> y <strong>⚡ Dar Ítem</strong>.
+            </p>
+          </div>
+
+          <div class="faq-card">
+            <h4>❓ ¿Necesito pagar alguna suscripción, API Key o cuenta Pro?</h4>
+            <p>
+              <strong>No.</strong> Esta herramienta es <strong>100% gratuita y de código abierto</strong>. Se conecta directamente al Webcast público de TikTok sin pasar por servicios de pago de terceros, y se comunica localmente con tu servidor de Hytale mediante nuestro propio plugin <code>HyRCON.jar</code>.
+            </p>
+          </div>
+
+          <div class="faq-card">
+            <h4>❓ ¿Cómo conecto el chat en directo cuando ya estoy transmitiendo en TikTok?</h4>
+            <p>
+              Asegúrate de haber guardado tu <strong>🎥 Usuario TikTok</strong> en la barra superior. Puedes verificar que la app detecte tu directo haciendo clic en <strong>🔄 Verificar Estado Ahora</strong> (cambiará a <strong>🔴 EN VIVO EN TIKTOK</strong>) y ejecutando el conector en directo (<code>npm start</code>) o probando desde el panel.
+            </p>
+          </div>
+
+          <div class="faq-card">
+            <h4>❓ ¿Dónde se guardan mis reglas personalizadas?</h4>
+            <p>
+              Todas tus reglas de regalos, mobs e ítems se guardan automáticamente en el archivo <code>config/gifts.json</code> (o en <code>~/.config/hytale-tiktok-rcon/gifts.json</code> si usas el instalador empaquetado) y se recargan en caliente sin necesidad de reiniciar el servidor de Hytale.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CRÉDITOS, FUENTES DE DATOS Y MATERIAL DE TERCEROS -->
+      <div class="docs-section-block mt-lg">
+        <div class="step-badge">📜 Créditos, Fuentes de Datos y Material de Terceros</div>
+        <div class="faq-grid">
+          <div class="faq-card">
+            <h4>🐉 Datos e Ilustraciones de Mobs e Ítems de Hytale</h4>
+            <p>
+              Los nombres, categorías, identificadores en el juego (<code>Role ID</code> e <code>Item ID</code>) e ilustraciones del catálogo de criaturas y objetos provienen de <strong><a href="https://hytaleguide.net/mobs" target="_blank" rel="noopener noreferrer">HytaleGuide.net (/mobs e /items)</a></strong> y de los archivos locales del servidor (<code>Assets.zip</code>). <strong>Hytale</strong>, el universo de <em>Orbis</em>, sus logotipos, nombres e ilustraciones son propiedad intelectual y marcas registradas de <strong>Hypixel Studios Inc.</strong>
+            </p>
+          </div>
+
+          <div class="faq-card">
+            <h4>🎁 Catálogo e Iconos de Regalos de TikTok Live</h4>
+            <p>
+              El listado extendido de regalos, nombres, costos en monedas e iconos se obtiene combinando la guía pública de <strong><a href="https://streamtoearn.io/gifts" target="_blank" rel="noopener noreferrer">StreamToEarn.io (/gifts)</a></strong> y la API pública de <strong>TikTok Webcast</strong>. <strong>TikTok</strong> y las ilustraciones de sus regalos virtuales son marcas registradas y propiedad de <strong>ByteDance Ltd.</strong>
+            </p>
+          </div>
+
+          <div class="faq-card">
+            <h4>📦 Librerías Open Source y Tipografías</h4>
+            <p>
+              Construido sobre <strong>Node.js</strong> y <strong>Electron</strong> utilizando los paquetes de código abierto <code>tiktok-live-connector</code> (Zerody), <code>rcon-client</code> y <code>dotenv</code>. Las fuentes tipográficas <em>Cinzel</em> e <em>Inter</em> son provistas por <strong>Google Fonts</strong> bajo licencia abierta (OFL).
+            </p>
+          </div>
+
+          <div class="faq-card">
+            <h4>⚖️ Aviso Legal de No Afiliación</h4>
+            <p>
+              Este proyecto es una herramienta comunitaria independiente, gratuita y de código abierto. <strong>No está afiliada, patrocinada ni respaldada oficialmente por Hypixel Studios Inc., TikTok, ByteDance Ltd., HytaleGuide.net ni StreamToEarn.io.</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PIE DE PÁGINA GLOBAL CON ATRIBUCIONES Y CRÉDITOS DE MATERIAL DE TERCEROS -->
+    <footer class="app-footer">
+      <div class="app-footer-inner">
+        <p>
+          <strong>📜 Créditos y Material de Terceros:</strong>
+          Catálogo e ilustraciones de Mobs e Ítems obtenidos de
+          <a href="https://hytaleguide.net/mobs" target="_blank" rel="noopener noreferrer">HytaleGuide.net (/mobs)</a> y
+          <a href="https://hytaleguide.net/items" target="_blank" rel="noopener noreferrer">HytaleGuide.net (/items)</a> ·
+          Catálogo de regalos e iconos obtenidos de
+          <a href="https://streamtoearn.io/gifts" target="_blank" rel="noopener noreferrer">StreamToEarn.io (/gifts)</a> y TikTok Webcast API ·
+          Librerías Open Source: <code>tiktok-live-connector</code>, <code>rcon-client</code>, <code>dotenv</code> y <code>Electron</code>.
+        </p>
+        <p class="app-footer-disclaimer">
+          Proyecto comunitario 100% gratuito y sin fines de lucro. <em>Hytale</em> y sus recursos visuales pertenecen a <strong>Hypixel Studios Inc.</strong> · <em>TikTok</em> y los iconos de regalos pertenecen a <strong>ByteDance Ltd.</strong> No afiliado oficialmente con ninguna de las marcas mencionadas.
+        </p>
+      </div>
+    </footer>
   </main>
 
   <!-- MODAL / EDITOR VISUAL DE REGLA (SELECCIONAR REGALO/EVENTO + SELECCIONAR MOBS) -->
@@ -395,33 +698,55 @@
           </div>
         </div>
 
-        <!-- COLUMNA DERECHA: 2. ELEGIR MOBS DE HYTALE (Y COMANDOS EXTRA) -->
+        <!-- COLUMNA DERECHA: 2. ELEGIR MOBS O ÍTEMS DE HYTALE (Y COMANDOS EXTRA) -->
         <div class="builder-column">
-          <div class="step-badge">Paso 2 · ¿Qué Mobs de Hytale van a salir?</div>
+          <div class="step-badge">Paso 2 · ¿Qué pasa en Hytale? (Spawnear Mob o Dar Ítem)</div>
 
-          <!-- Lista de Mobs ya seleccionados para esta regla -->
+          <!-- Lista de Mobs e Ítems ya asignados a esta regla -->
           <div class="selected-mobs-panel">
             <div class="panel-Label-row">
-              <span>👾 Mobs asignados a este evento:</span>
-              <button type="button" id="clearSelectedMobsBtn" class="btn-link">Limpiar mobs</button>
+              <span>⚡ Acciones asignadas a este evento (Mobs e Ítems):</span>
+              <button type="button" id="clearSelectedMobsBtn" class="btn-link">Limpiar selección</button>
             </div>
             <div id="selectedMobsList" class="selected-mobs-list"></div>
           </div>
 
-          <!-- Buscador visual de Mobs de Hytale -->
-          <div class="mini-toolbar">
-            <input type="text" id="modalMobSearch" placeholder="🔍 Buscar Mob de Hytale (ej. Skeleton, Goblin, Void, Dragon, Bear)..." />
-            <select id="modalMobCategoryFilter">
-              <option value="all">Todas las categorías</option>
-            </select>
+          <!-- Selector de modo en Paso 2: Spawnear Mobs vs Dar Ítems al Jugador -->
+          <div class="reward-type-selector">
+            <button type="button" class="reward-type-btn active" data-reward-tab="mobs">
+              👾 Spawnear Mobs (<code>npc spawn</code>)
+            </button>
+            <button type="button" class="reward-type-btn" data-reward-tab="items">
+              🗡️ Dar Ítem al Jugador (<code>give {player}</code>)
+            </button>
           </div>
 
-          <div id="modalMobsPickerGrid" class="picker-grid mobs-picker"></div>
+          <!-- Sub-panel A: Buscador visual de Mobs de Hytale -->
+          <div id="modalMobsSection">
+            <div class="mini-toolbar">
+              <input type="text" id="modalMobSearch" placeholder="🔍 Buscar Mob de Hytale (ej. Skeleton, Goblin, Void, Dragon, Bear)..." />
+              <select id="modalMobCategoryFilter">
+                <option value="all">Todas las categorías</option>
+              </select>
+            </div>
+            <div id="modalMobsPickerGrid" class="picker-grid mobs-picker"></div>
+          </div>
 
-          <!-- Comandos adicionales (ej. give items) -->
+          <!-- Sub-panel B: Buscador visual de Ítems de Hytale -->
+          <div id="modalItemsSection" class="hidden">
+            <div class="mini-toolbar">
+              <input type="text" id="modalItemSearch" placeholder="🔍 Buscar Ítem de Hytale (ej. Sword, Apple Pie, Armor_Adamantite, Potion)..." />
+              <select id="modalItemCategoryFilter">
+                <option value="all">Todas las categorías</option>
+              </select>
+            </div>
+            <div id="modalItemsPickerGrid" class="picker-grid mobs-picker"></div>
+          </div>
+
+          <!-- Comandos adicionales -->
           <div class="extra-commands-box">
-            <label for="modalExtraCommands">🛠️ Comandos extra opcionales (1 por línea, ej. <code>give {player} Food_Pie_Apple</code>):</label>
-            <textarea id="modalExtraCommands" rows="2" placeholder="give {player} Food_Pie_Apple"></textarea>
+            <label for="modalExtraCommands">🛠️ Comandos extra personalizados (1 por línea, opcional):</label>
+            <textarea id="modalExtraCommands" rows="2" placeholder="time set night"></textarea>
           </div>
         </div>
       </div>

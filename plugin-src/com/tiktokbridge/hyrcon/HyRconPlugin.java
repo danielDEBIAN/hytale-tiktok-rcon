@@ -1,4 +1,4 @@
-package com.daniel.hyrcon;
+package com.tiktokbridge.hyrcon;
 
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandManager;
@@ -186,7 +186,7 @@ public class HyRconPlugin extends JavaPlugin {
             CommandSender sender = ConsoleSender.INSTANCE;
             String finalCmd = cmd;
 
-            // Soporte para "as <jugador> <comando>" (ej. "as PaletaChupada npc spawn Skeleton")
+            // Soporte para "as <jugador> <comando>" (ej. "as Jugador npc spawn Skeleton")
             if (cmd.regionMatches(true, 0, "as ", 0, 3)) {
                 String rest = cmd.substring(3).trim();
                 int spaceIdx = rest.indexOf(' ');
@@ -209,6 +209,19 @@ public class HyRconPlugin extends JavaPlugin {
                     return "No hay ningun jugador en el mundo para spawnear el NPC.";
                 }
                 sender = targetPlayer;
+            } else if (cmd.regionMatches(true, 0, "give ", 0, 5)) {
+                // Si se usa "give @p <item>" o "give Player <item>" y el jugador en el mundo tiene otro nombre, resolverlo automaticamente
+                String rest = cmd.substring(5).trim();
+                int spaceIdx = rest.indexOf(' ');
+                if (spaceIdx > 0) {
+                    String targetName = rest.substring(0, spaceIdx).trim();
+                    String afterTarget = rest.substring(spaceIdx + 1).trim();
+                    PlayerRef targetPlayer = findOnlinePlayer(targetName);
+                    if (targetPlayer == null) {
+                        return "Jugador '" + targetName + "' no esta conectado en el mundo actualmente.";
+                    }
+                    finalCmd = "give " + targetPlayer.getUsername() + " " + afterTarget;
+                }
             }
 
             getLogger().at(Level.INFO).log("[HyRCON] Ejecutando (" + sender.getUsername() + "): /" + finalCmd);

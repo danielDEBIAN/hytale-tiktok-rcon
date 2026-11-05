@@ -7,9 +7,16 @@ import { TikTokLiveConnection } from 'tiktok-live-connector';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const CACHE_DIR = path.resolve(__dirname, '../config/.cache');
+const BUNDLED_CACHE_DIR = path.resolve(__dirname, '../config/.cache');
+const CACHE_DIR = __dirname.includes('app.asar')
+  ? path.join(os.homedir(), '.config', 'hytale-tiktok-rcon', 'cache')
+  : BUNDLED_CACHE_DIR;
 const MOBS_CACHE_FILE = path.join(CACHE_DIR, 'mobs.json');
+const ITEMS_CACHE_FILE = path.join(CACHE_DIR, 'items.json');
 const GIFTS_CACHE_FILE = path.join(CACHE_DIR, 'tiktok-gifts.json');
+const BUNDLED_MOBS_CACHE = path.join(BUNDLED_CACHE_DIR, 'mobs.json');
+const BUNDLED_ITEMS_CACHE = path.join(BUNDLED_CACHE_DIR, 'items.json');
+const BUNDLED_GIFTS_CACHE = path.join(BUNDLED_CACHE_DIR, 'tiktok-gifts.json');
 const ASSETS_ZIP_PATH =
   process.env.HYTALE_ASSETS_PATH ||
   path.join(process.env.HYTALE_SERVER_DIR || path.join(os.homedir(), 'hytale-server'), 'Assets.zip');
@@ -17,6 +24,17 @@ const ASSETS_ZIP_PATH =
 function ensureCacheDir() {
   if (!fs.existsSync(CACHE_DIR)) {
     fs.mkdirSync(CACHE_DIR, { recursive: true });
+  }
+  if (CACHE_DIR !== BUNDLED_CACHE_DIR) {
+    if (!fs.existsSync(MOBS_CACHE_FILE) && fs.existsSync(BUNDLED_MOBS_CACHE)) {
+      fs.copyFileSync(BUNDLED_MOBS_CACHE, MOBS_CACHE_FILE);
+    }
+    if (!fs.existsSync(ITEMS_CACHE_FILE) && fs.existsSync(BUNDLED_ITEMS_CACHE)) {
+      fs.copyFileSync(BUNDLED_ITEMS_CACHE, ITEMS_CACHE_FILE);
+    }
+    if (!fs.existsSync(GIFTS_CACHE_FILE) && fs.existsSync(BUNDLED_GIFTS_CACHE)) {
+      fs.copyFileSync(BUNDLED_GIFTS_CACHE, GIFTS_CACHE_FILE);
+    }
   }
 }
 
@@ -45,9 +63,33 @@ function getLocalHytaleRoles() {
 }
 
 /**
- * Extrae las entidades embebidas en el payload de SvelteKit de hytaleguide.net/mobs
+ * Extrae la lista de Item IDs reales disponibles en el servidor local de Hytale (Assets.zip)
  */
-async function fetchHytaleGuideMobsPage(url) {
+function getLocalHytaleItems() {
+  const items = new Set();
+  try {
+    if (fs.existsSync(ASSETS_ZIP_PATH)) {
+      const out = execSync(`unzip -l "${ASSETS_ZIP_PATH}" "Server/Item/Items/*.json"`, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      for (const line of out.split('\n')) {
+        const match = line.match(/Server\/Item\/Items\/(?:.*\/)?([^/\s]+)\.json$/);
+        if (match) {
+          items.add(match[1]);
+        }
+      }
+    }
+  } catch {
+    // Ignorar si unzip o Assets.zip no está disponible
+  }
+  return items;
+}
+
+/**
+ * Extrae el objeto data completo embebido en el payload de SvelteKit de hytaleguide.net
+ */
+async function fetchHytaleGuidePageData(url) {
   const res = await fetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36',
@@ -58,10 +100,10 @@ async function fetchHytaleGuideMobsPage(url) {
   }
   const html = await res.text();
   const entitiesIdx = html.indexOf('entities:[');
-  if (entitiesIdx === -1) return [];
+  if (entitiesIdx === -1) return { entities: [], properties: {} };
 
   const iifeStart = html.lastIndexOf('(function(', entitiesIdx);
-  if (iifeStart === -1) return [];
+  if (iifeStart === -1) return { entities: [], properties: {} };
 
   let depth = 0;
   let iifeEnd = -1;
@@ -75,11 +117,22 @@ async function fetchHytaleGuideMobsPage(url) {
       }
     }
   }
-  if (iifeEnd === -1) return [];
+  if (iifeEnd === -1) return { entities: [], properties: {} };
 
   const code = html.slice(iifeStart, iifeEnd);
   const evaluated = new Function(`return ${code};`)();
-  return evaluated?.data?.entities || [];
+  return {
+    entities: evaluated?.data?.entities || [],
+    properties: evaluated?.data?.properties || {},
+  };
+}
+
+/**
+ * Extrae las entidades embebidas en el payload de SvelteKit de hytaleguide.net/mobs
+ */
+async function fetchHytaleGuideMobsPage(url) {
+  const data = await fetchHytaleGuidePageData(url);
+  return data.entities;
 }
 
 /**
@@ -146,6 +199,79 @@ export async function fetchHytaleMobs(forceRefresh = false) {
   }
 
   return mobs;
+}
+
+/**
+ * Obtiene dinámicamente todos los ítems de Hytale (3,873+ ítems) con su nombre, Item ID e ilustración
+ * desde https://hytaleguide.net/items y los valida contra Assets.zip del servidor local.
+ */
+export async function fetchHytaleItems(forceRefresh = false) {
+  ensureCacheDir();
+
+  if (!forceRefresh && fs.existsSync(ITEMS_CACHE_FILE)) {
+    try {
+      const cached = JSON.parse(fs.readFileSync(ITEMS_CACHE_FILE, 'utf-8'));
+      if (Array.isArray(cached) && cached.length > 0) {
+        return cached;
+      }
+    } catch {
+      // Continuar con descarga fresca
+    }
+  }
+
+  const localItems = getLocalHytaleItems();
+  const firstPage = await fetchHytaleGuidePageData('https://hytaleguide.net/items');
+  const lastPage = Math.min(Number(firstPage.properties?.last_page) || 20, 25);
+
+  const rawEntities = [...(firstPage.entities || [])];
+  const remainingPages = [];
+  for (let p = 2; p <= lastPage; p++) {
+    remainingPages.push(p);
+  }
+
+  // Descargar las páginas restantes en lotes paralelos de 7 para máxima velocidad
+  for (let i = 0; i < remainingPages.length; i += 7) {
+    const batch = remainingPages.slice(i, i + 7);
+    const results = await Promise.all(
+      batch.map((p) =>
+        fetchHytaleGuidePageData(`https://hytaleguide.net/items/${p}`).catch(() => ({ entities: [] }))
+      )
+    );
+    for (const r of results) {
+      rawEntities.push(...(r.entities || []));
+    }
+  }
+
+  const seenItemIds = new Set();
+  const items = [];
+
+  for (const entity of rawEntities) {
+    const itemId = entity.in_game_identifier || entity.name?.replace(/\s+/g, '_');
+    if (!itemId || seenItemIds.has(itemId)) continue;
+    seenItemIds.add(itemId);
+
+    const categories = (entity.latest_version?.categories || []).map(
+      (c) => c.label || c.name || c.slug
+    );
+
+    items.push({
+      name: entity.name || itemId.replaceAll('_', ' '),
+      itemId,
+      slug: entity.slug || itemId.toLowerCase(),
+      image: entity.latest_version?.image?.image_url || '',
+      categories,
+      isNew: Boolean(entity.is_new),
+      verifiedInServer: localItems.size === 0 ? true : localItems.has(itemId),
+    });
+  }
+
+  try {
+    fs.writeFileSync(ITEMS_CACHE_FILE, JSON.stringify(items, null, 2), 'utf-8');
+  } catch {
+    // No bloquear si falla el guardado en caché
+  }
+
+  return items;
 }
 
 /**

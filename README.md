@@ -2,7 +2,7 @@
 
 Estudio visual y aplicación de escritorio **100% gratuita** desarrollada en **Node.js (ES Modules)**, **Electron** y **Java 25** para conectar cualquier directo de **TikTok Live** con un servidor dedicado de **Hytale** mediante **RCON** (sin pagar suscripciones como TikFinity Pro ni planes de pago de EulerStream).
 
-Permite iniciar y configurar tu servidor de Hytale con un clic, explorar visualmente los **281+ Mobs de Hytale con su imagen oficial**, buscar entre **1,690+ Regalos de TikTok con su precio en monedas**, asignarlos visualmente y spawnear enemigos o dar objetos en la posición exacta del jugador en tiempo real.
+Permite iniciar y configurar tu servidor de Hytale con un clic, explorar visualmente los **281+ Mobs de Hytale** y los **3,873+ Ítems de Hytale con su ilustración oficial**, buscar entre **1,690+ Regalos de TikTok con su precio en monedas**, asignarlos visualmente y spawnear enemigos o entregar objetos en el inventario del jugador en tiempo real.
 
 ---
 
@@ -85,8 +85,10 @@ Si prefieres clonar el repositorio y correrlo o modificarlo desde el código fue
 
 - **Estética Inspirada en Hytale (Orbis):** Interfaz gráfica con acabados dorados, estado en vivo de RCON y TikTok Live, editor visual de reglas en 2 pasos y consola del servidor integrada.
 - **Catálogos Dinámicos en Tiempo Real:**
-  - **281+ Mobs de Hytale** con imagen, nombre, categoría y `Role ID` validado contra `Assets.zip`.
+  - **281+ Mobs de Hytale** (`hytaleguide.net/mobs` + `Assets.zip`) con ilustración, nombre, categoría y `Role ID`.
+  - **3,873+ Ítems de Hytale** (`hytaleguide.net/items` + `Assets.zip`) con ilustración oficial, nombre y `Item ID` listo para usar con `give {player} <ItemID>`.
   - **1,690+ Regalos de TikTok** con imagen oficial y filtro por costo en monedas.
+- **Documentación y Centro de Ayuda Integrado (`📖 Guía y Ayuda`):** Incluye una guía paso a paso dentro de la propia aplicación, referencia de variables dinámicas y solución de problemas frecuentes (FAQ).
 - **Gestor del Servidor Hytale Integrado:** Inicia/detén `HytaleServer.jar` sin usar terminal, instala `HyRCON.jar` con 1 clic y edita visualmente `config.json` y `universe/worlds/default/config.json` (PvP, modo de juego, RAM, daño por caída, spawneo de NPCs, ciclo día/noche).
 - **100% Gratuito y Sin Límites:** Incluye un bypass en [`src/index.js`](src/index.js) para obtener el catálogo de regalos directamente desde la API Webcast de TikTok (`signRequest = false`), evitando el bloqueo de pago (*Business Plan*) de EulerStream.
 - **Plugin RCON Propio (`TikTokBridge:HyRCON`):** Código fuente en Java incluido en [`plugin-src/`](plugin-src/) que implementa el protocolo Source RCON en `127.0.0.1:25575` y añade el prefijo `as <jugador> <comando>` para spawnear criaturas en las coordenadas exactas del jugador.
@@ -105,7 +107,7 @@ hytale-tiktok-rcon/
 │   ├── HyRCON.jar               # Mod precompilado listo para instalar en mods/
 │   ├── manifest.json            # Manifiesto del plugin (TikTokBridge:HyRCON)
 │   ├── README.md                # Documentación técnica del mod HyRCON
-│   └── com/daniel/hyrcon/
+│   └── com/tiktokbridge/hyrcon/
 │       └── HyRconPlugin.java    # Servidor RCON TCP + ejecutor en posición del jugador
 ├── public/                      # Interfaz Gráfica Estilo Hytale (Frontend)
 │   ├── index.html               # Panel de reglas, catálogos y gestor del servidor
@@ -134,7 +136,48 @@ hytale-tiktok-rcon/
 | Acción | Sintaxis del Comando RCON | Ejemplo Real en Hytale |
 | :--- | :--- | :--- |
 | **Mensaje global** | `say <mensaje>` | `say [TikTok] ¡{user} envió {repeatCount}x {giftName}!` |
-| **Dar objeto** | `give {player} <ID_Item>` | `give {player} Food_Pie_Apple`<br>`give {player} Weapon_Sword_Steel`<br>`give {player} Potion_Health` |
+| **Dar objeto (1 unidad)** | `give {player} <ID_Item>` | `give {player} Food_Pie_Apple`<br>`give {player} Weapon_Sword_Steel`<br>`give {player} Potion_Health` |
+| **Dar objeto (múltiples)** | `give {player} <ID_Item> --quantity <N>` | `give {player} Food_Pie_Apple --quantity 5` |
 | **Spawnear Mob en tu posición** | `as {player} npc spawn <ID_Role>` | `as {player} npc spawn Goblin_Burner`<br>`as {player} npc spawn Trork_Warrior`<br>`as {player} npc spawn Shadow_Knight` |
 
 Variables dinámicas disponibles: `{player}`, `{user}`, `{giftName}`, `{repeatCount}`.
+
+---
+
+## 🛠️ Ayuda y Solución de Problemas Frecuentes (FAQ)
+
+### 1. Hago clic en "⚡ Probar en Hytale" pero no aparece el Mob o Ítem en el juego
+Verifica estos 3 puntos:
+1. **Servidor encendido:** El panel superior izquierdo debe mostrar **🟢 Servidor de Hytale y RCON Activos**. Si está apagado, presiona **▶️ Iniciar Servidor Hytale**.
+2. **Modo RCON Real activo:** El botón en la esquina superior derecha debe decir **🟢 RCON REAL ACTIVO** (si dice `🧪 SIMULADOR`, haz clic sobre él para pasar a modo Real).
+3. **Jugador dentro de la partida:** Debes haber entrado al mundo desde tu juego de Hytale (`Multijugador → Conexión Directa → 127.0.0.1:5520`) y tu nombre en el campo **👤 Jugador Hytale** debe coincidir con tu usuario en la partida.
+
+### 2. El estado de TikTok Live dice "Usuario fuera de línea (No está en LIVE)"
+Es normal cuando no estás transmitiendo en vivo en ese momento, ya que TikTok solo activa la sala Webcast durante una transmisión activa. Puedes configurar y probar todas tus reglas de Mobs e Ítems en cualquier momento usando los botones **⚡ Probar en Hytale**, **⚡ Spawnear** y **⚡ Dar Ítem**.
+
+### 3. ¿Dónde se guardan mis reglas personalizadas?
+Todas las reglas se guardan automáticamente en `config/gifts.json` (o en `~/.config/hytale-tiktok-rcon/gifts.json` cuando ejecutas el instalador empaquetado `.AppImage` / `.exe`) y se recargan en caliente sin necesidad de reiniciar el servidor de Hytale.
+
+---
+
+## 📜 Créditos, Fuentes de Datos y Material de Terceros (Atribuciones)
+
+Esta aplicación utiliza datos públicos, librerías de código abierto y recursos visuales pertenecientes a sus respectivos autores y titulares:
+
+### 1. Páginas Web y Fuentes de Catálogos
+- **[HytaleGuide.net — Mobs](https://hytaleguide.net/mobs) e [Ítems](https://hytaleguide.net/items):** Fuente de consulta para los nombres, categorías, identificadores dentro del juego (`in_game_identifier` / `Role ID` / `Item ID`) y las miniaturas ilustradas de las criaturas y objetos de Hytale.
+- **[StreamToEarn.io — TikTok Gifts](https://streamtoearn.io/gifts):** Fuente de consulta para el catálogo global de regalos de TikTok, costos en monedas e iconos de regalos regionales.
+- **API Pública de TikTok Webcast:** Consulta en tiempo real del estado de transmisión (`LIVE`) y lista de regalos activos de la sala.
+
+### 2. Propiedad Intelectual, Juegos y Marcas
+- **Hytale y el Universo de Orbis (`HytaleServer.jar`, `Assets.zip`, logotipos, nombres e ilustraciones de Mobs e Ítems):** Son propiedad intelectual y marcas registradas de **Hypixel Studios Inc.** La estética visual del panel está inspirada en el estilo artístico de [Hytale.com](https://hytale.com/).
+- **TikTok y Regalos de TikTok Live:** Son marcas registradas y propiedad intelectual de **ByteDance Ltd.**
+
+### 3. Paquetes y Librerías Open Source (Node.js / Frontend)
+- **[`tiktok-live-connector`](https://github.com/zerodytrash/TikTok-Live-Connector)** *(MIT License, por Zerody)* — Conexión a eventos de Webcast de TikTok Live en Node.js.
+- **[`rcon-client`](https://github.com/janispritzkau/rcon-client)** *(MIT License)* — Cliente para el protocolo TCP Source RCON.
+- **[`dotenv`](https://github.com/motdotla/dotenv)** *(BSD-2-Clause License)* — Carga de variables de entorno desde archivo `.env`.
+- **[`electron`](https://www.electronjs.org/) y [`electron-builder`](https://www.electron.build/)** *(MIT License)* — Empaquetado multiplataforma de escritorio para Windows (`.exe`) y Linux (`.AppImage`).
+- **[Google Fonts (`Cinzel` e `Inter`)](https://fonts.google.com/)** *(SIL Open Font License)* — Tipografías empleadas en la interfaz gráfica.
+
+> **⚖️ Aviso Legal:** Este proyecto es una herramienta comunitaria independiente, 100% gratuita y sin fines de lucro. **No está afiliada, asociada, autorizada, respaldada ni patrocinada oficialmente por Hypixel Studios Inc., TikTok, ByteDance Ltd., HytaleGuide.net ni StreamToEarn.io.**

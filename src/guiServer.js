@@ -1,20 +1,38 @@
 import 'dotenv/config';
+import dotenv from 'dotenv';
 import http from 'node:http';
 import net from 'node:net';
+import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TikTokLiveConnection } from 'tiktok-live-connector';
 import { HytaleRconClient } from './rconClient.js';
-import { GiftHandler } from './giftHandler.js';
-import { fetchHytaleMobs, fetchTikTokGifts } from './catalogService.js';
+import { GiftHandler, getWritableConfigPath } from './giftHandler.js';
+import { fetchHytaleMobs, fetchHytaleItems, fetchTikTokGifts } from './catalogService.js';
 import { HytaleServerManager } from './hytaleServerManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PUBLIC_DIR = path.resolve(__dirname, '../public');
-const CONFIG_PATH = path.resolve(__dirname, '../config/gifts.json');
-const ENV_PATH = path.resolve(__dirname, '../.env');
+const CONFIG_PATH = getWritableConfigPath();
+
+function getWritableEnvPath() {
+  if (__dirname.includes('app.asar')) {
+    const userDir = path.join(os.homedir(), '.config', 'hytale-tiktok-rcon');
+    if (!fs.existsSync(userDir)) {
+      fs.mkdirSync(userDir, { recursive: true });
+    }
+    const target = path.join(userDir, '.env');
+    if (fs.existsSync(target)) {
+      dotenv.config({ path: target, override: true });
+    }
+    return target;
+  }
+  return path.resolve(__dirname, '../.env');
+}
+
+const ENV_PATH = getWritableEnvPath();
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -168,11 +186,11 @@ export async function startGuiServer(options = {}) {
 
   let rconClient = options.rconClient;
   if (!rconClient) {
-    const mockMode = String(process.env.MOCK_RCON).toLowerCase() !== 'false';
+    const mockMode = String(process.env.MOCK_RCON).toLowerCase() === 'true';
     rconClient = new HytaleRconClient({
       host: process.env.RCON_HOST || '127.0.0.1',
       port: Number(process.env.RCON_PORT) || 25575,
-      password: process.env.RCON_PASSWORD || '',
+      password: process.env.RCON_PASSWORD || 'hytale_rcon_local',
       mockMode,
     });
     await rconClient.connect();
@@ -180,19 +198,46 @@ export async function startGuiServer(options = {}) {
 
   let giftHandler = options.giftHandler;
   if (!giftHandler) {
-    giftHandler = new GiftHandler(rconClient, process.env.PLAYER_NAME || 'PaletaChupada');
+    giftHandler = new GiftHandler(rconClient, process.env.PLAYER_NAME || '');
   }
 
   const serverManager = new HytaleServerManager();
 
   /**
+   * Sincroniza la contraseña RCON desde rcon.properties del servidor si existe
+   */
+  function syncRconPasswordFromServerDir() {
+    try {
+      const propsFile = path.join(serverManager.serverDir, 'rcon.properties');
+      if (fs.existsSync(propsFile)) {
+        const raw = fs.readFileSync(propsFile, 'utf-8');
+        const passMatch = raw.match(/^password=(.+)$/m);
+        if (passMatch && passMatch[1].trim()) {
+          rconClient.password = passMatch[1].trim();
+        }
+      }
+    } catch {
+      // Ignorar
+    }
+  }
+
+  syncRconPasswordFromServerDir();
+
+  /**
    * Evalúa en vivo el estado real del servidor RCON de Hytale
    */
   async function evaluateRconStatus() {
+    syncRconPasswordFromServerDir();
     const host = rconClient.host || '127.0.0.1';
     const rconPort = rconClient.port || 25575;
     const portReachable = await checkTcpPort(host, rconPort, 1200);
     const procStatus = serverManager.getStatus();
+
+    // Si el servidor real de Hytale ya está escuchando en 25575 y estaba en modo simulador, pasar a modo Real automáticamente
+    if (portReachable && rconClient.mockMode) {
+      rconClient.mockMode = false;
+      updateEnvFile({ MOCK_RCON: 'false' });
+    }
 
     if (rconClient.mockMode) {
       return {
@@ -241,6 +286,7 @@ export async function startGuiServer(options = {}) {
     }
 
     if (rconClient.isConnected) {
+      const targetLabel = giftHandler.playerName || 'tu jugador en el mundo';
       return {
         mockMode: false,
         serverUp: true,
@@ -249,7 +295,7 @@ export async function startGuiServer(options = {}) {
         port: rconPort,
         status: 'online',
         title: 'Servidor de Hytale y RCON Activos',
-        message: `Conectado exitosamente a HyRCON en ${host}:${rconPort}. Los mobs aparecerán en la posición de ${giftHandler.playerName}.`,
+        message: `Conectado exitosamente a HyRCON en ${host}:${rconPort}. Las acciones se aplicarán sobre ${targetLabel}.`,
       };
     }
 
@@ -395,6 +441,13 @@ export async function startGuiServer(options = {}) {
         return sendJson(res, 200, { ok: true, total: mobs.length, mobs });
       }
 
+      // 1.5 Obtener catálogo dinámico de Ítems de Hytale (hytaleguide.net/items + Assets.zip)
+      if (req.method === 'GET' && url.pathname === '/api/items') {
+        const refresh = url.searchParams.get('refresh') === '1';
+        const items = await fetchHytaleItems(refresh);
+        return sendJson(res, 200, { ok: true, total: items.length, items });
+      }
+
       // 2. Obtener catálogo dinámico de Regalos de TikTok (streamtoearn.io + TikTok Webcast API)
       if (req.method === 'GET' && url.pathname === '/api/tiktok-gifts') {
         const refresh = url.searchParams.get('refresh') === '1';
@@ -410,7 +463,7 @@ export async function startGuiServer(options = {}) {
           config,
           env: {
             tiktokUsername: process.env.TIKTOK_USERNAME || '',
-            playerName: giftHandler.playerName || process.env.PLAYER_NAME || 'PaletaChupada',
+            playerName: giftHandler.playerName || process.env.PLAYER_NAME || '',
             rconHost: rconClient.host,
             rconPort: rconClient.port,
             mockMode: rconClient.mockMode,
@@ -434,7 +487,7 @@ export async function startGuiServer(options = {}) {
       if (req.method === 'POST' && url.pathname === '/api/env') {
         const body = await readBody(req);
         const updates = {};
-        if (typeof body.playerName === 'string' && body.playerName.trim()) {
+        if (typeof body.playerName === 'string') {
           updates.PLAYER_NAME = body.playerName.trim();
           giftHandler.playerName = updates.PLAYER_NAME;
         }
@@ -452,7 +505,7 @@ export async function startGuiServer(options = {}) {
           ok: true,
           env: {
             tiktokUsername: process.env.TIKTOK_USERNAME || '',
-            playerName: giftHandler.playerName,
+            playerName: giftHandler.playerName || '',
             mockMode: rconClient.mockMode,
             rconConnected: rconClient.isConnected,
           },
@@ -463,9 +516,38 @@ export async function startGuiServer(options = {}) {
       if (req.method === 'POST' && url.pathname === '/api/test') {
         const body = await readBody(req);
         const type = body.type;
+        const targetPlayer = giftHandler.playerName || '@p';
+        const playerLabel = giftHandler.playerName || 'tu jugador activo';
+
+        syncRconPasswordFromServerDir();
+        const portReachable = await checkTcpPort(rconClient.host || '127.0.0.1', rconClient.port || 25575, 1200);
+
+        if (portReachable && rconClient.mockMode) {
+          rconClient.mockMode = false;
+          updateEnvFile({ MOCK_RCON: 'false' });
+        }
+
+        if (!portReachable && !rconClient.mockMode) {
+          return sendJson(res, 400, {
+            ok: false,
+            error:
+              '⚠️ Tu servidor de Hytale está apagado (127.0.0.1:25575 no responde). Inícialo primero con el botón "▶️ Iniciar Servidor Hytale".',
+          });
+        }
+
+        const checkHyRconResponse = (responses = []) => {
+          const text = responses.filter(Boolean).join(' | ');
+          if (text.includes('no esta conectado en el mundo') || text.includes('No hay ningun jugador en el mundo')) {
+            return {
+              ok: false,
+              error: `⚠️ El servidor está activo, pero ${playerLabel} aún no ha entrado al mundo en Hytale (127.0.0.1:5520). Entra a la partida para ejecutar la acción.`,
+            };
+          }
+          return null;
+        };
 
         if (type === 'gift') {
-          await giftHandler.handleGift({
+          const result = await giftHandler.handleGift({
             user: { nickname: body.user || 'TesterGUI' },
             giftName: body.giftName || 'Rose',
             repeatCount: Number(body.repeatCount) || 1,
@@ -473,43 +555,89 @@ export async function startGuiServer(options = {}) {
             giftType: 1,
             repeatEnd: true,
           });
+          const warn = checkHyRconResponse(result?.responses);
+          if (warn) return sendJson(res, 400, warn);
+          if (!result?.executed) {
+            return sendJson(res, 400, {
+              ok: false,
+              error: '❌ No se pudo enviar el comando por RCON al servidor de Hytale.',
+            });
+          }
           return sendJson(res, 200, {
             ok: true,
-            message: `Regalo "${body.giftName}" ejecutado para ${giftHandler.playerName}`,
+            message: rconClient.mockMode
+              ? `🧪 [Simulador] Regalo "${body.giftName}" simulado en consola`
+              : `✅ Regalo "${body.giftName}" ejecutado en Hytale para ${playerLabel}`,
           });
         }
 
         if (type === 'follow') {
-          await giftHandler.handleFollow({
+          const result = await giftHandler.handleFollow({
             user: { nickname: body.user || 'SeguidorGUI' },
           });
+          const warn = checkHyRconResponse(result?.responses);
+          if (warn) return sendJson(res, 400, warn);
           return sendJson(res, 200, {
             ok: true,
-            message: 'Evento de Nuevo Seguidor (Follow) ejecutado',
+            message: '✅ Evento de Nuevo Seguidor (Follow) ejecutado en Hytale',
           });
         }
 
         if (type === 'like') {
           const step = Number(giftHandler.loadConfig().specialEvents?.likeMilestone?.everyLikes) || 100;
-          await giftHandler.handleLike({
+          const result = await giftHandler.handleLike({
             user: { nickname: body.user || 'FanGUI' },
             likeCount: step,
           });
+          const warn = checkHyRconResponse(result?.responses);
+          if (warn) return sendJson(res, 400, warn);
           return sendJson(res, 200, {
             ok: true,
-            message: `Meta de Likes (+${step}) ejecutada`,
+            message: `✅ Meta de Likes (+${step}) ejecutada en Hytale`,
           });
         }
 
         if (type === 'mob') {
           const roleId = String(body.roleId || 'Skeleton').replace(/[;"\\]/g, '').trim();
           const count = Math.min(Math.max(Number(body.count) || 1, 1), 20);
+          const responses = [];
           for (let i = 0; i < count; i++) {
-            await rconClient.sendCommand(`as ${giftHandler.playerName} npc spawn ${roleId}`);
+            const out = await rconClient.sendCommand(`as ${targetPlayer} npc spawn ${roleId}`);
+            responses.push(out);
+          }
+          const warn = checkHyRconResponse(responses);
+          if (warn) return sendJson(res, 400, warn);
+          if (!responses.some((r) => r !== null)) {
+            return sendJson(res, 400, {
+              ok: false,
+              error: '❌ No se pudo enviar el comando por RCON al servidor de Hytale.',
+            });
           }
           return sendJson(res, 200, {
             ok: true,
-            message: `Spawneado ${count}x ${roleId} en la posición de ${giftHandler.playerName}`,
+            message: `✅ Spawneado ${count}x ${roleId} en la posición de ${playerLabel}`,
+          });
+        }
+
+        if (type === 'item') {
+          const itemId = String(body.itemId || 'Food_Pie_Apple').replace(/[;"\\]/g, '').trim();
+          const count = Math.min(Math.max(Number(body.count) || 1, 1), 100);
+          const cmd =
+            count > 1
+              ? `give ${targetPlayer} ${itemId} --quantity ${count}`
+              : `give ${targetPlayer} ${itemId}`;
+          const out = await rconClient.sendCommand(cmd);
+          const warn = checkHyRconResponse([out]);
+          if (warn) return sendJson(res, 400, warn);
+          if (out === null) {
+            return sendJson(res, 400, {
+              ok: false,
+              error: '❌ No se pudo enviar el comando por RCON al servidor de Hytale.',
+            });
+          }
+          return sendJson(res, 200, {
+            ok: true,
+            message: `✅ Entregado ${count}x ${itemId} al inventario de ${playerLabel}`,
           });
         }
 
@@ -520,10 +648,12 @@ export async function startGuiServer(options = {}) {
             giftName: body.giftName || 'Test',
             repeatCount: 1,
           });
-          await rconClient.sendCommand(formatted);
+          const out = await rconClient.sendCommand(formatted);
+          const warn = checkHyRconResponse([out]);
+          if (warn) return sendJson(res, 400, warn);
           return sendJson(res, 200, {
             ok: true,
-            message: `Comando ejecutado: ${formatted}`,
+            message: `✅ Comando ejecutado: ${formatted}`,
           });
         }
 

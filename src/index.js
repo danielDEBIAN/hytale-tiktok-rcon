@@ -21,14 +21,14 @@ RouteConfig.fetchRoomGifts = async ({ webClient, roomId = webClient.roomId }) =>
   }
 };
 
-const tiktokUsername = process.env.TIKTOK_USERNAME;
-const playerName = process.env.PLAYER_NAME || 'Daniel';
-const mockMode = String(process.env.MOCK_RCON).toLowerCase() !== 'false';
+const tiktokUsername = process.env.TIKTOK_USERNAME || '';
+const playerName = process.env.PLAYER_NAME || '';
+const mockMode = String(process.env.MOCK_RCON).toLowerCase() === 'true';
 
 const rconClient = new HytaleRconClient({
   host: process.env.RCON_HOST || '127.0.0.1',
   port: Number(process.env.RCON_PORT) || 25575,
-  password: process.env.RCON_PASSWORD || '',
+  password: process.env.RCON_PASSWORD || 'hytale_rcon_local',
   mockMode,
 });
 
@@ -38,8 +38,8 @@ async function main() {
   console.log('====================================================');
   console.log('⚔️  HYTALE x TIKTOK LIVE (RCON BRIDGE - 100% FREE) ⚔️');
   console.log('====================================================');
-  console.log(`👤 Jugador en Hytale : ${playerName}`);
-  console.log(`🎥 Usuario TikTok    : @${tiktokUsername}`);
+  console.log(`👤 Jugador en Hytale : ${playerName || '(Auto-detectar en el mundo)'}`);
+  console.log(`🎥 Usuario TikTok    : ${tiktokUsername ? `@${tiktokUsername}` : '(Sin configurar)'}`);
   console.log(`🛠️  Modo RCON         : ${mockMode ? 'SIMULADOR (Sin servidor)' : 'CONEXIÓN REAL'}`);
   console.log('----------------------------------------------------\n');
 

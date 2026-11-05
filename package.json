@@ -12,10 +12,10 @@
     "dist:linux": "npx electron-builder --linux AppImage --publish never",
     "dist:win": "npx electron-builder --win portable --publish never",
     "simulate": "node src/simulate.js",
-    "build:plugin": "mkdir -p plugin-src/build && javac -cp ~/hytale-server/HytaleServer.jar -d plugin-src/build plugin-src/com/daniel/hyrcon/HyRconPlugin.java && cp plugin-src/manifest.json plugin-src/build/manifest.json && jar cf plugin-src/HyRCON.jar -C plugin-src/build . && cp plugin-src/HyRCON.jar ~/hytale-server/mods/HyRCON.jar && rm -rf plugin-src/build"
+    "build:plugin": "mkdir -p plugin-src/build && javac -cp ~/hytale-server/HytaleServer.jar -d plugin-src/build plugin-src/com/tiktokbridge/hyrcon/HyRconPlugin.java && cp plugin-src/manifest.json plugin-src/build/manifest.json && jar cf plugin-src/HyRCON.jar -C plugin-src/build . && cp plugin-src/HyRCON.jar ~/hytale-server/mods/HyRCON.jar && rm -rf plugin-src/build"
   },
   "build": {
-    "appId": "com.daniel.hytaletiktokrcon",
+    "appId": "com.tiktokbridge.hytalercon",
     "productName": "HytaleTikTokLive",
     "files": [
       "src/**/*",
@@ -47,5 +47,8 @@
   "devDependencies": {
     "electron": "^45.2.3",
     "electron-builder": "^26.18.0"
+  },
+  "overrides": {
+    "minimatch": "^11.0.4"
   }
 }

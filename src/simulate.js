@@ -3,7 +3,7 @@ import readline from 'node:readline';
 import { HytaleRconClient } from './rconClient.js';
 import { GiftHandler } from './giftHandler.js';
 
-const playerName = process.env.PLAYER_NAME || 'Daniel';
+const playerName = process.env.PLAYER_NAME || '';
 const mockMode = String(process.env.MOCK_RCON).toLowerCase() !== 'false';
 
 const rconClient = new HytaleRconClient({

@@ -1,30 +1,40 @@
 const state = {
   config: { gifts: {}, specialEvents: {}, defaultGift: { enabled: true, commands: [] } },
-  env: { tiktokUsername: '', playerName: 'PaletaChupada', mockMode: false, rconConnected: false },
+  env: { tiktokUsername: '', playerName: '', mockMode: false, rconConnected: false },
   mobs: [],
   mobsByRole: new Map(),
+  items: [],
+  itemsById: new Map(),
   giftsCatalog: [],
   giftsByName: new Map(),
   // Filtros en pestañas principales
   mobCatalogCategory: 'all',
   mobCatalogQuery: '',
+  itemCatalogCategory: 'all',
+  itemCatalogQuery: '',
   giftCatalogPrice: 'all',
   giftCatalogQuery: '',
   // Estado del Modal Editor de Regla
   modal: {
     editingOriginalGiftName: null,
     triggerType: 'gift', // 'gift' | 'follow' | 'likeMilestone' | 'defaultGift'
+    rewardTab: 'mobs', // 'mobs' | 'items'
     selectedGiftName: '',
     selectedMobs: [], // [{ roleId, count }]
+    selectedItems: [], // [{ itemId, count }]
     giftSearch: '',
     giftPriceFilter: 'all',
     mobSearch: '',
     mobCategoryFilter: 'all',
+    itemSearch: '',
+    itemCategoryFilter: 'all',
   },
 };
 
 const FALLBACK_MOB_IMG =
   'https://cdn.hytaleguide.net/entity-images/ppLBcFQeleGq2yZykaLv1AJ7FujWMndD3lDZLEB2_resized.png';
+const FALLBACK_ITEM_IMG =
+  'https://cdn.hytaleguide.net/entity-images/s7BBkg9AFSB6J0LHnsQv0chzF6VFDVl2yvugUAQG_resized.png';
 const FALLBACK_GIFT_IMG =
   'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/eba3a9bb85c33e017f3648eaf88d7189~tplv-obj.webp';
 
@@ -59,11 +69,13 @@ function matchPriceFilter(coins, filter) {
  * Analiza un arreglo de comandos RCON y separa:
  * - sayMessage (texto después de `say `)
  * - mobs ([{ roleId, count }])
- * - extraCommands (ej. `give {player} ...`)
+ * - items ([{ itemId, count }])
+ * - extraCommands
  */
 function parseRuleCommands(commands = []) {
   let sayMessage = '';
   const mobCounts = new Map();
+  const itemCounts = new Map();
   const extraCommands = [];
 
   for (const raw of commands) {
@@ -84,26 +96,45 @@ function parseRuleCommands(commands = []) {
       continue;
     }
 
+    const giveMatch = cmd.match(
+      /^(?:as\s+\S+\s+)?give\s+(?:\{player\}|\S+)\s+([^\s;]+)(?:\s+--quantity\s+(\d+)|\s+(\d+))?$/i
+    );
+    if (giveMatch) {
+      const itemId = giveMatch[1].trim();
+      const qty = Math.max(1, Number(giveMatch[2] || giveMatch[3]) || 1);
+      itemCounts.set(itemId, (itemCounts.get(itemId) || 0) + qty);
+      continue;
+    }
+
     extraCommands.push(cmd);
   }
 
   const mobs = Array.from(mobCounts.entries()).map(([roleId, count]) => ({ roleId, count }));
-  return { sayMessage, mobs, extraCommands };
+  const items = Array.from(itemCounts.entries()).map(([itemId, count]) => ({ itemId, count }));
+  return { sayMessage, mobs, items, extraCommands };
 }
 
 /**
- * Construye el arreglo de comandos RCON a partir de sayMessage, mobs y extraCommands
+ * Construye el arreglo de comandos RCON a partir de sayMessage, mobs, items y extraCommands
  */
-function buildRuleCommands({ sayMessage, mobs, extraCommands }) {
+function buildRuleCommands({ sayMessage, mobs = [], items = [], extraCommands = [] }) {
   const commands = [];
   if (sayMessage && sayMessage.trim()) {
     const cleanSay = sayMessage.trim().replace(/^say\s+/i, '');
     commands.push(`say ${cleanSay}`);
   }
-  for (const item of mobs) {
-    const count = Math.max(1, Math.min(Number(item.count) || 1, 25));
+  for (const mob of mobs) {
+    const count = Math.max(1, Math.min(Number(mob.count) || 1, 25));
     for (let i = 0; i < count; i++) {
-      commands.push(`as {player} npc spawn ${item.roleId}`);
+      commands.push(`as {player} npc spawn ${mob.roleId}`);
+    }
+  }
+  for (const it of items) {
+    const count = Math.max(1, Math.min(Number(it.count) || 1, 100));
+    if (count > 1) {
+      commands.push(`give {player} ${it.itemId} --quantity ${count}`);
+    } else {
+      commands.push(`give {player} ${it.itemId}`);
     }
   }
   for (const extra of extraCommands) {
@@ -123,6 +154,20 @@ function findMobInfo(roleId) {
     name: roleId.replaceAll('_', ' '),
     roleId,
     image: FALLBACK_MOB_IMG,
+    categories: [],
+  };
+}
+
+function findItemInfo(itemId) {
+  if (state.itemsById.has(itemId)) return state.itemsById.get(itemId);
+  const lower = String(itemId).toLowerCase();
+  for (const [k, v] of state.itemsById.entries()) {
+    if (k.toLowerCase() === lower) return v;
+  }
+  return {
+    name: itemId.replaceAll('_', ' '),
+    itemId,
+    image: FALLBACK_ITEM_IMG,
     categories: [],
   };
 }
@@ -380,6 +425,24 @@ async function loadMobs(refresh = false) {
   }
 }
 
+async function loadItems(refresh = false) {
+  const badge = document.getElementById('itemsCountBadge');
+  if (badge) badge.textContent = '...';
+  const res = await fetch(`/api/items${refresh ? '?refresh=1' : ''}`);
+  const data = await res.json();
+  if (data.ok) {
+    state.items = data.items || [];
+    state.itemsById.clear();
+    for (const it of state.items) {
+      state.itemsById.set(it.itemId, it);
+    }
+    if (badge) badge.textContent = state.items.length;
+    populateItemCategories();
+    renderItemsCatalog();
+    renderConfiguredRules();
+  }
+}
+
 async function loadGiftsCatalog(refresh = false) {
   document.getElementById('giftsCountBadge').textContent = '...';
   const res = await fetch(`/api/tiktok-gifts${refresh ? '?refresh=1' : ''}`);
@@ -399,9 +462,32 @@ async function loadGiftsCatalog(refresh = false) {
 // ==========================================
 // RENDERIZADO DE LA BARRA SUPERIOR (.env)
 // ==========================================
+function updateTopbarTooltips() {
+  const playerInput = document.getElementById('envPlayerName');
+  const tiktokInput = document.getElementById('envTiktokUser');
+  const playerWrap = document.getElementById('playerFieldWrap');
+  const tiktokWrap = document.getElementById('tiktokFieldWrap');
+
+  const pVal = playerInput?.value?.trim();
+  const tVal = tiktokInput?.value?.trim();
+
+  const pTooltip = pVal
+    ? `👤 Jugador Hytale: ${pVal}`
+    : '👤 Jugador Hytale: Escribe tu nombre de usuario dentro del servidor de Hytale (Ej. TuNombreEnHytale)';
+  const tTooltip = tVal
+    ? `🎥 Usuario TikTok: @${tVal.replace(/^@/, '')}`
+    : '🎥 Usuario TikTok: Escribe el @usuario de la cuenta que transmitirá en TikTok Live (Ej. @tu_usuario_tiktok)';
+
+  if (playerWrap) playerWrap.setAttribute('data-tooltip', pTooltip);
+  if (playerInput) playerInput.title = pTooltip;
+  if (tiktokWrap) tiktokWrap.setAttribute('data-tooltip', tTooltip);
+  if (tiktokInput) tiktokInput.title = tTooltip;
+}
+
 function renderTopbarEnv() {
   document.getElementById('envPlayerName').value = state.env.playerName || '';
   document.getElementById('envTiktokUser').value = state.env.tiktokUsername || '';
+  updateTopbarTooltips();
   const btn = document.getElementById('envMockModeBtn');
   if (state.env.mockMode) {
     btn.className = 'status-pill mock';
@@ -416,7 +502,7 @@ function renderTopbarEnv() {
 // RENDERIZADO PESTAÑA 1: MIS REGLAS CONFIGURADAS
 // ==========================================
 function renderMobChipsHtml(commands) {
-  const { mobs, extraCommands } = parseRuleCommands(commands);
+  const { mobs, items, extraCommands } = parseRuleCommands(commands);
   const parts = [];
 
   for (const item of mobs) {
@@ -425,8 +511,21 @@ function renderMobChipsHtml(commands) {
       <div class="rule-mob-chip">
         <img src="${escapeHtml(mob.image || FALLBACK_MOB_IMG)}" alt="${escapeHtml(mob.name)}" loading="lazy" />
         <div class="rule-mob-chip-info">
-          <span class="rule-mob-chip-name">${item.count}x ${escapeHtml(mob.name)}</span>
+          <span class="rule-mob-chip-name">👾 ${item.count}x ${escapeHtml(mob.name)}</span>
           <span class="rule-mob-chip-id">npc spawn ${escapeHtml(item.roleId)}</span>
+        </div>
+      </div>
+    `);
+  }
+
+  for (const it of items) {
+    const info = findItemInfo(it.itemId);
+    parts.push(`
+      <div class="rule-mob-chip rule-item-chip">
+        <img src="${escapeHtml(info.image || FALLBACK_ITEM_IMG)}" alt="${escapeHtml(info.name)}" loading="lazy" />
+        <div class="rule-mob-chip-info">
+          <span class="rule-mob-chip-name">🗡️ ${it.count}x ${escapeHtml(info.name)}</span>
+          <span class="rule-mob-chip-id">give {player} ${escapeHtml(it.itemId)}</span>
         </div>
       </div>
     `);
@@ -437,7 +536,7 @@ function renderMobChipsHtml(commands) {
   }
 
   if (parts.length === 0) {
-    return `<div class="rule-cmd-line">Sin mobs ni comandos asignados</div>`;
+    return `<div class="rule-cmd-line">Sin mobs ni ítems asignados</div>`;
   }
   return parts.join('');
 }
@@ -656,6 +755,92 @@ function renderMobsCatalog() {
 }
 
 // ==========================================
+// RENDERIZADO PESTAÑA 2.5: CATÁLOGO DE ÍTEMS HYTALE
+// ==========================================
+function populateItemCategories() {
+  const counts = new Map();
+  for (const it of state.items) {
+    for (const c of it.categories || []) {
+      counts.set(c, (counts.get(c) || 0) + 1);
+    }
+  }
+  const topCategories = Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([name]) => name);
+
+  const pillsContainer = document.getElementById('itemCategoryPills');
+  if (pillsContainer) {
+    pillsContainer.innerHTML = [
+      `<button type="button" class="pill ${state.itemCatalogCategory === 'all' ? 'active' : ''}" data-item-cat="all">Todos (${state.items.length})</button>`,
+      ...topCategories.map(
+        (cat) =>
+          `<button type="button" class="pill ${state.itemCatalogCategory === cat ? 'active' : ''}" data-item-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`
+      ),
+    ].join('');
+  }
+
+  const modalSelect = document.getElementById('modalItemCategoryFilter');
+  if (modalSelect) {
+    const allCats = Array.from(counts.keys()).sort();
+    modalSelect.innerHTML = [
+      `<option value="all">Todas las categorías (${state.items.length})</option>`,
+      ...allCats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)} (${counts.get(c)})</option>`),
+    ].join('');
+  }
+}
+
+function renderItemsCatalog() {
+  const grid = document.getElementById('itemsCatalogGrid');
+  if (!grid) return;
+  const q = state.itemCatalogQuery.trim().toLowerCase();
+  const cat = state.itemCatalogCategory;
+
+  const filtered = state.items.filter((it) => {
+    if (cat !== 'all' && !(it.categories || []).includes(cat)) return false;
+    if (q) {
+      return (
+        it.name.toLowerCase().includes(q) ||
+        it.itemId.toLowerCase().includes(q) ||
+        (it.categories || []).some((c) => c.toLowerCase().includes(q))
+      );
+    }
+    return true;
+  });
+
+  // Mostrar hasta 240 tarjetas en vista para máxima fluidez del DOM (de los 3,873 ítems)
+  const visible = filtered.slice(0, 240);
+
+  if (visible.length === 0) {
+    grid.innerHTML = `<p class="rule-desc">No se encontraron ítems con ese filtro.</p>`;
+    return;
+  }
+
+  grid.innerHTML = visible
+    .map(
+      (it) => `
+      <div class="entity-card">
+        ${it.isNew ? '<span class="entity-badge-new">NEW</span>' : ''}
+        <div class="entity-img-wrap">
+          <img src="${escapeHtml(it.image || FALLBACK_ITEM_IMG)}" alt="${escapeHtml(it.name)}" loading="lazy" />
+        </div>
+        <div class="entity-title">${escapeHtml(it.name)}</div>
+        <div class="entity-sub">${escapeHtml(it.itemId)}</div>
+        <div class="entity-actions">
+          <button type="button" class="btn btn-success btn-sm" data-action="give-item-now" data-item="${escapeHtml(it.itemId)}" title="Dar este ítem ahora mismo a tu jugador en Hytale">
+            ⚡ Dar Ítem
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" data-action="assign-item" data-item="${escapeHtml(it.itemId)}" title="Asignar este ítem a un Regalo o Evento">
+            🎯 Asignar
+          </button>
+        </div>
+      </div>
+    `
+    )
+    .join('');
+}
+
+// ==========================================
 // RENDERIZADO PESTAÑA 3: CATÁLOGO DE REGALOS TIKTOK
 // ==========================================
 function renderGiftsCatalog() {
@@ -702,7 +887,7 @@ function renderGiftsCatalog() {
 }
 
 // ==========================================
-// MODAL EDITOR VISUAL (REGALO / EVENTO + MOBS)
+// MODAL EDITOR VISUAL (REGALO / EVENTO + MOBS O ÍTEMS)
 // ==========================================
 function openRuleModal(options = {}) {
   const m = state.modal;
@@ -710,15 +895,23 @@ function openRuleModal(options = {}) {
   m.triggerType = options.triggerType || 'gift';
   m.selectedGiftName = options.giftName || options.editingGiftName || 'Rose';
   m.selectedMobs = [];
+  m.selectedItems = [];
+  m.rewardTab = options.preselectedItemId ? 'items' : 'mobs';
   m.giftSearch = '';
   m.giftPriceFilter = 'all';
   m.mobSearch = '';
   m.mobCategoryFilter = 'all';
+  m.itemSearch = '';
+  m.itemCategoryFilter = 'all';
 
   document.getElementById('modalGiftSearch').value = '';
   document.getElementById('modalGiftPriceFilter').value = 'all';
   document.getElementById('modalMobSearch').value = '';
   document.getElementById('modalMobCategoryFilter').value = 'all';
+  const modalItemSearch = document.getElementById('modalItemSearch');
+  const modalItemCat = document.getElementById('modalItemCategoryFilter');
+  if (modalItemSearch) modalItemSearch.value = '';
+  if (modalItemCat) modalItemCat.value = 'all';
 
   let existingRule = null;
   if (m.triggerType === 'gift') {
@@ -740,6 +933,10 @@ function openRuleModal(options = {}) {
   if (existingRule) {
     const parsed = parseRuleCommands(existingRule.commands || []);
     m.selectedMobs = parsed.mobs;
+    m.selectedItems = parsed.items;
+    if (m.selectedItems.length > 0 && m.selectedMobs.length === 0 && !options.preselectedMobRole) {
+      m.rewardTab = 'items';
+    }
     document.getElementById('modalDescription').value = existingRule.description || '';
     document.getElementById('modalScaleCombo').checked = existingRule.scaleWithCombo !== false;
     document.getElementById('modalSayMessage').value = parsed.sayMessage || '';
@@ -749,8 +946,9 @@ function openRuleModal(options = {}) {
   } else {
     document.getElementById('modalDescription').value = '';
     document.getElementById('modalScaleCombo').checked = true;
-    document.getElementById('modalSayMessage').value =
-      '[TikTok] ¡{user} envió {repeatCount}x {giftName}! ¡Aparece un enemigo para {player}!';
+    document.getElementById('modalSayMessage').value = options.preselectedItemId
+      ? '[TikTok] ¡{user} envió {repeatCount}x {giftName}! Entregando ítem a {player}.'
+      : '[TikTok] ¡{user} envió {repeatCount}x {giftName}! ¡Aparece un enemigo para {player}!';
     document.getElementById('modalExtraCommands').value = '';
     document.getElementById('modalSpecialEnabled').checked = true;
     document.getElementById('modalEveryLikes').value = 100;
@@ -758,6 +956,7 @@ function openRuleModal(options = {}) {
 
   // Si venimos de hacer clic en "🎯 Asignar" sobre un Mob del catálogo
   if (options.preselectedMobRole) {
+    m.rewardTab = 'mobs';
     const exists = m.selectedMobs.find((x) => x.roleId === options.preselectedMobRole);
     if (!exists) {
       m.selectedMobs.push({ roleId: options.preselectedMobRole, count: 1 });
@@ -768,11 +967,26 @@ function openRuleModal(options = {}) {
     }
   }
 
+  // Si venimos de hacer clic en "🎯 Asignar" sobre un Ítem del catálogo
+  if (options.preselectedItemId) {
+    m.rewardTab = 'items';
+    const exists = m.selectedItems.find((x) => x.itemId === options.preselectedItemId);
+    if (!exists) {
+      m.selectedItems.push({ itemId: options.preselectedItemId, count: 1 });
+    }
+    const itemInfo = findItemInfo(options.preselectedItemId);
+    if (!document.getElementById('modalDescription').value) {
+      document.getElementById('modalDescription').value = `Da ${itemInfo.name} al jugador`;
+    }
+  }
+
   syncModalTriggerUI();
+  syncModalRewardTabUI();
   renderModalSelectedGiftBanner();
   renderModalGiftsPicker();
   renderModalSelectedMobs();
   renderModalMobsPicker();
+  renderModalItemsPicker();
 
   document.getElementById('ruleModalBackdrop').classList.remove('hidden');
 }
@@ -791,6 +1005,17 @@ function syncModalTriggerUI() {
   document.getElementById('triggerSpecialSection').classList.toggle('hidden', t === 'gift');
   document.getElementById('modalComboGroup').classList.toggle('hidden', t !== 'gift');
   document.getElementById('modalLikesEveryGroup').classList.toggle('hidden', t !== 'likeMilestone');
+}
+
+function syncModalRewardTabUI() {
+  const tab = state.modal.rewardTab || 'mobs';
+  document.querySelectorAll('.reward-type-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.rewardTab === tab);
+  });
+  const mobsSec = document.getElementById('modalMobsSection');
+  const itemsSec = document.getElementById('modalItemsSection');
+  if (mobsSec) mobsSec.classList.toggle('hidden', tab !== 'mobs');
+  if (itemsSec) itemsSec.classList.toggle('hidden', tab !== 'items');
 }
 
 function renderModalSelectedGiftBanner() {
@@ -842,35 +1067,57 @@ function renderModalGiftsPicker() {
 
 function renderModalSelectedMobs() {
   const container = document.getElementById('selectedMobsList');
-  const list = state.modal.selectedMobs;
+  const mobsList = state.modal.selectedMobs || [];
+  const itemsList = state.modal.selectedItems || [];
 
-  if (list.length === 0) {
-    container.innerHTML = `<p class="hint">Haz clic en uno o más Mobs de Hytale abajo para que aparezcan cuando ocurra este regalo/evento 👇</p>`;
+  if (mobsList.length === 0 && itemsList.length === 0) {
+    container.innerHTML = `<p class="hint">Haz clic en uno o más Mobs o Ítems de Hytale abajo para asignarlos a este evento 👇</p>`;
     return;
   }
 
-  container.innerHTML = list
-    .map((item) => {
-      const mob = findMobInfo(item.roleId);
-      return `
-        <div class="selected-mob-row">
-          <div class="selected-mob-left">
-            <img src="${escapeHtml(mob.image || FALLBACK_MOB_IMG)}" alt="${escapeHtml(mob.name)}" />
-            <div>
-              <div class="rule-mob-chip-name">${escapeHtml(mob.name)}</div>
-              <div class="rule-mob-chip-id">${escapeHtml(item.roleId)}</div>
-            </div>
-          </div>
-          <div class="selected-mob-controls">
-            <button type="button" class="qty-btn" data-mob-qty="-1" data-role="${escapeHtml(item.roleId)}">-</button>
-            <span class="qty-val">${item.count}x</span>
-            <button type="button" class="qty-btn" data-mob-qty="1" data-role="${escapeHtml(item.roleId)}">+</button>
-            <button type="button" class="qty-btn" data-mob-remove="${escapeHtml(item.roleId)}" title="Quitar">✕</button>
+  const mobRows = mobsList.map((item) => {
+    const mob = findMobInfo(item.roleId);
+    return `
+      <div class="selected-mob-row">
+        <div class="selected-mob-left">
+          <img src="${escapeHtml(mob.image || FALLBACK_MOB_IMG)}" alt="${escapeHtml(mob.name)}" />
+          <div>
+            <div class="rule-mob-chip-name">👾 ${escapeHtml(mob.name)}</div>
+            <div class="rule-mob-chip-id">npc spawn ${escapeHtml(item.roleId)}</div>
           </div>
         </div>
-      `;
-    })
-    .join('');
+        <div class="selected-mob-controls">
+          <button type="button" class="qty-btn" data-mob-qty="-1" data-role="${escapeHtml(item.roleId)}">-</button>
+          <span class="qty-val">${item.count}x</span>
+          <button type="button" class="qty-btn" data-mob-qty="1" data-role="${escapeHtml(item.roleId)}">+</button>
+          <button type="button" class="qty-btn" data-mob-remove="${escapeHtml(item.roleId)}" title="Quitar">✕</button>
+        </div>
+      </div>
+    `;
+  });
+
+  const itemRows = itemsList.map((it) => {
+    const info = findItemInfo(it.itemId);
+    return `
+      <div class="selected-mob-row">
+        <div class="selected-mob-left">
+          <img src="${escapeHtml(info.image || FALLBACK_ITEM_IMG)}" alt="${escapeHtml(info.name)}" />
+          <div>
+            <div class="rule-mob-chip-name">🗡️ ${escapeHtml(info.name)}</div>
+            <div class="rule-mob-chip-id">give {player} ${escapeHtml(it.itemId)}</div>
+          </div>
+        </div>
+        <div class="selected-mob-controls">
+          <button type="button" class="qty-btn" data-item-qty="-1" data-item="${escapeHtml(it.itemId)}">-</button>
+          <span class="qty-val">${it.count}x</span>
+          <button type="button" class="qty-btn" data-item-qty="1" data-item="${escapeHtml(it.itemId)}">+</button>
+          <button type="button" class="qty-btn" data-item-remove="${escapeHtml(it.itemId)}" title="Quitar">✕</button>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = [...mobRows, ...itemRows].join('');
 }
 
 function renderModalMobsPicker() {
@@ -894,6 +1141,36 @@ function renderModalMobsPicker() {
           <img src="${escapeHtml(m.image || FALLBACK_MOB_IMG)}" alt="${escapeHtml(m.name)}" loading="lazy" />
           <div class="picker-item-name">${escapeHtml(m.name)}</div>
           <div class="picker-item-sub">${selectedEntry ? `✅ ${selectedEntry.count}x` : escapeHtml(m.roleId)}</div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function renderModalItemsPicker() {
+  const grid = document.getElementById('modalItemsPickerGrid');
+  if (!grid) return;
+  const q = state.modal.itemSearch.trim().toLowerCase();
+  const cat = state.modal.itemCategoryFilter;
+
+  const filtered = state.items
+    .filter((it) => {
+      if (cat !== 'all' && !(it.categories || []).includes(cat)) return false;
+      if (q) {
+        return it.name.toLowerCase().includes(q) || it.itemId.toLowerCase().includes(q);
+      }
+      return true;
+    })
+    .slice(0, 140);
+
+  grid.innerHTML = filtered
+    .map((it) => {
+      const selectedEntry = state.modal.selectedItems.find((x) => x.itemId === it.itemId);
+      return `
+        <div class="picker-item ${selectedEntry ? 'selected' : ''}" data-pick-item="${escapeHtml(it.itemId)}">
+          <img src="${escapeHtml(it.image || FALLBACK_ITEM_IMG)}" alt="${escapeHtml(it.name)}" loading="lazy" />
+          <div class="picker-item-name">${escapeHtml(it.name)}</div>
+          <div class="picker-item-sub">${selectedEntry ? `✅ ${selectedEntry.count}x` : escapeHtml(it.itemId)}</div>
         </div>
       `;
     })
@@ -932,11 +1209,12 @@ async function handleSaveModalRule() {
   const commands = buildRuleCommands({
     sayMessage,
     mobs: m.selectedMobs,
+    items: m.selectedItems,
     extraCommands,
   });
 
   if (commands.length === 0) {
-    showToast('⚠️ Selecciona al menos un Mob de Hytale o escribe un comando.');
+    showToast('⚠️ Selecciona al menos un Mob o Ítem de Hytale, o escribe un comando.');
     return;
   }
 
@@ -949,11 +1227,14 @@ async function handleSaveModalRule() {
     if (m.editingOriginalGiftName && m.editingOriginalGiftName !== m.selectedGiftName) {
       delete state.config.gifts[m.editingOriginalGiftName];
     }
-    const autoDesc =
-      description ||
-      (m.selectedMobs.length > 0
-        ? `Spawnea ${m.selectedMobs.map((x) => `${x.count}x ${findMobInfo(x.roleId).name}`).join(', ')}`
-        : `Acción para ${m.selectedGiftName}`);
+    const summaryParts = [];
+    if (m.selectedMobs.length > 0) {
+      summaryParts.push(`Spawnea ${m.selectedMobs.map((x) => `${x.count}x ${findMobInfo(x.roleId).name}`).join(', ')}`);
+    }
+    if (m.selectedItems.length > 0) {
+      summaryParts.push(`Da ${m.selectedItems.map((x) => `${x.count}x ${findItemInfo(x.itemId).name}`).join(', ')}`);
+    }
+    const autoDesc = description || summaryParts.join(' · ') || `Acción para ${m.selectedGiftName}`;
 
     state.config.gifts[m.selectedGiftName] = {
       description: autoDesc,
@@ -1020,6 +1301,8 @@ function setupEventListeners() {
   });
 
   // Guardar ajustes de .env
+  document.getElementById('envPlayerName')?.addEventListener('input', updateTopbarTooltips);
+  document.getElementById('envTiktokUser')?.addEventListener('input', updateTopbarTooltips);
   document.getElementById('saveEnvBtn').addEventListener('click', async () => {
     const playerName = document.getElementById('envPlayerName').value.trim();
     const tiktokUsername = document.getElementById('envTiktokUser').value.trim();
@@ -1143,7 +1426,12 @@ function setupEventListeners() {
   });
 
   document.getElementById('opCurrentPlayerBtn').addEventListener('click', async () => {
-    const player = document.getElementById('envPlayerName').value.trim() || state.env.playerName || 'PaletaChupada';
+    const player = document.getElementById('envPlayerName').value.trim() || state.env.playerName;
+    if (!player) {
+      showToast('⚠️ Escribe primero tu nombre en "👤 Jugador Hytale" en la barra superior');
+      document.getElementById('envPlayerName').focus();
+      return;
+    }
     const command = `op add ${player}`;
     const res = await fetch('/api/hytale/console', {
       method: 'POST',
@@ -1181,7 +1469,12 @@ function setupEventListeners() {
         body: JSON.stringify({ type: 'gift', giftName, repeatCount: 1, coins: giftInfo.coins || 1 }),
       });
       const data = await res.json();
-      if (data.ok) showToast(`⚡ ${data.message}`);
+      if (data.ok) {
+        showToast(`⚡ ${data.message}`);
+        checkSystemStatus(false);
+      } else {
+        showToast(data.error || '❌ No se pudo ejecutar en Hytale');
+      }
     } else if (action === 'edit-gift') {
       openRuleModal({ triggerType: 'gift', editingGiftName: btn.dataset.gift });
     } else if (action === 'delete-gift') {
@@ -1203,7 +1496,12 @@ function setupEventListeners() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (data.ok) showToast(`⚡ ${data.message}`);
+      if (data.ok) {
+        showToast(`⚡ ${data.message}`);
+        checkSystemStatus(false);
+      } else {
+        showToast(data.error || '❌ No se pudo ejecutar en Hytale');
+      }
     } else if (action === 'edit-special') {
       openRuleModal({ triggerType: btn.dataset.special });
     }
@@ -1240,9 +1538,56 @@ function setupEventListeners() {
         body: JSON.stringify({ type: 'mob', roleId, count: 1 }),
       });
       const data = await res.json();
-      if (data.ok) showToast(`⚡ ${data.message}`);
+      if (data.ok) {
+        showToast(`⚡ ${data.message}`);
+        checkSystemStatus(false);
+      } else {
+        showToast(data.error || '❌ No se pudo spawnear en Hytale');
+      }
     } else if (btn.dataset.action === 'assign-mob') {
       openRuleModal({ triggerType: 'gift', preselectedMobRole: roleId });
+    }
+  });
+
+  // Filtros y acciones en Catálogo de Ítems Hytale
+  document.getElementById('itemCatalogSearch')?.addEventListener('input', (e) => {
+    state.itemCatalogQuery = e.target.value;
+    renderItemsCatalog();
+  });
+
+  document.getElementById('itemCategoryPills')?.addEventListener('click', (e) => {
+    const pill = e.target.closest('button[data-item-cat]');
+    if (!pill) return;
+    state.itemCatalogCategory = pill.dataset.itemCat;
+    populateItemCategories();
+    renderItemsCatalog();
+  });
+
+  document.getElementById('refreshItemsBtn')?.addEventListener('click', async () => {
+    showToast('🔄 Sincronizando Ítems desde hytaleguide.net/items y Assets.zip...');
+    await loadItems(true);
+    showToast(`✅ ${state.items.length} Ítems de Hytale actualizados`);
+  });
+
+  document.getElementById('itemsCatalogGrid')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const itemId = btn.dataset.item;
+    if (btn.dataset.action === 'give-item-now') {
+      const res = await fetch('/api/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'item', itemId, count: 1 }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast(`⚡ ${data.message}`);
+        checkSystemStatus(false);
+      } else {
+        showToast(data.error || '❌ No se pudo entregar el ítem en Hytale');
+      }
+    } else if (btn.dataset.action === 'assign-item') {
+      openRuleModal({ triggerType: 'gift', preselectedItemId: itemId });
     }
   });
 
@@ -1280,6 +1625,13 @@ function setupEventListeners() {
         triggerType: btn.dataset.trigger,
         giftName: state.modal.selectedGiftName,
       });
+    });
+  });
+
+  document.querySelectorAll('.reward-type-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.modal.rewardTab = btn.dataset.rewardTab;
+      syncModalRewardTabUI();
     });
   });
 
@@ -1330,6 +1682,35 @@ function setupEventListeners() {
     renderModalMobsPicker();
   });
 
+  document.getElementById('modalItemSearch')?.addEventListener('input', (e) => {
+    state.modal.itemSearch = e.target.value;
+    renderModalItemsPicker();
+  });
+
+  document.getElementById('modalItemCategoryFilter')?.addEventListener('change', (e) => {
+    state.modal.itemCategoryFilter = e.target.value;
+    renderModalItemsPicker();
+  });
+
+  document.getElementById('modalItemsPickerGrid')?.addEventListener('click', (e) => {
+    const card = e.target.closest('[data-pick-item]');
+    if (!card) return;
+    const itemId = card.dataset.pickItem;
+    const existing = state.modal.selectedItems.find((x) => x.itemId === itemId);
+    if (existing) {
+      existing.count = Math.min(existing.count + 1, 100);
+    } else {
+      state.modal.selectedItems.push({ itemId, count: 1 });
+    }
+    const itemInfo = findItemInfo(itemId);
+    const descInput = document.getElementById('modalDescription');
+    if (!descInput.value.trim()) {
+      descInput.value = `Da ${itemInfo.name} al jugador`;
+    }
+    renderModalSelectedMobs();
+    renderModalItemsPicker();
+  });
+
   document.getElementById('selectedMobsList').addEventListener('click', (e) => {
     const qtyBtn = e.target.closest('[data-mob-qty]');
     if (qtyBtn) {
@@ -1352,13 +1733,40 @@ function setupEventListeners() {
       state.modal.selectedMobs = state.modal.selectedMobs.filter((x) => x.roleId !== roleId);
       renderModalSelectedMobs();
       renderModalMobsPicker();
+      return;
+    }
+
+    const itemQtyBtn = e.target.closest('[data-item-qty]');
+    if (itemQtyBtn) {
+      const itemId = itemQtyBtn.dataset.item;
+      const delta = Number(itemQtyBtn.dataset.itemQty);
+      const entry = state.modal.selectedItems.find((x) => x.itemId === itemId);
+      if (entry) {
+        entry.count += delta;
+        if (entry.count <= 0) {
+          state.modal.selectedItems = state.modal.selectedItems.filter((x) => x.itemId !== itemId);
+        }
+        renderModalSelectedMobs();
+        renderModalItemsPicker();
+      }
+      return;
+    }
+
+    const itemRmBtn = e.target.closest('[data-item-remove]');
+    if (itemRmBtn) {
+      const itemId = itemRmBtn.dataset.itemRemove;
+      state.modal.selectedItems = state.modal.selectedItems.filter((x) => x.itemId !== itemId);
+      renderModalSelectedMobs();
+      renderModalItemsPicker();
     }
   });
 
   document.getElementById('clearSelectedMobsBtn').addEventListener('click', () => {
     state.modal.selectedMobs = [];
+    state.modal.selectedItems = [];
     renderModalSelectedMobs();
     renderModalMobsPicker();
+    renderModalItemsPicker();
   });
 }
 
@@ -1368,7 +1776,7 @@ async function init() {
   checkSystemStatus(false);
   setInterval(() => checkSystemStatus(false), 10000);
   setInterval(() => loadHytaleLogs(), 3000);
-  await Promise.all([loadMobs(false), loadGiftsCatalog(false)]);
+  await Promise.all([loadMobs(false), loadItems(false), loadGiftsCatalog(false)]);
 }
 
 init();

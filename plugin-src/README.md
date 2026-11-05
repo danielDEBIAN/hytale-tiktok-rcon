@@ -68,7 +68,7 @@ Una vez conectado mediante cualquier cliente RCON al puerto `25575`:
 ### Pasos de compilación:
 ```bash
 mkdir -p build
-javac -cp /ruta/a/HytaleServer.jar -d build com/daniel/hyrcon/HyRconPlugin.java
+javac -cp /ruta/a/HytaleServer.jar -d build com/tiktokbridge/hyrcon/HyRconPlugin.java
 cp manifest.json build/manifest.json
 jar cf HyRCON.jar -C build .
 rm -rf build
