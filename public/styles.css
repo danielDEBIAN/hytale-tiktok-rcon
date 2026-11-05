@@ -124,6 +124,7 @@ body {
   letter-spacing: 0.06em;
   background: linear-gradient(180deg, #fff8d6 0%, #ffe98d 50%, #cfa03c 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
 }
@@ -552,6 +553,7 @@ body {
   gap: 0.75rem;
   padding: 0.75rem 2rem;
   background: rgba(9, 16, 28, 0.94);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border-stone);
   position: sticky;
@@ -1098,6 +1100,7 @@ body {
   position: fixed;
   inset: 0;
   background: rgba(4, 8, 15, 0.86);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   z-index: 100;
   display: flex;
