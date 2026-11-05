@@ -3,15 +3,49 @@
   "version": "1.0.0",
   "description": "Puente gratuito entre TikTok Live y Hytale mediante RCON para spawnear enemigos y dar objetos.",
   "type": "module",
-  "main": "src/index.js",
+  "main": "src/electronMain.js",
   "scripts": {
     "start": "node src/index.js",
+    "gui": "node src/guiServer.js",
+    "app": "bash ./launch-app.sh",
+    "desktop": "electron src/electronMain.js",
+    "dist:linux": "npx electron-builder --linux AppImage",
+    "dist:win": "npx electron-builder --win portable",
     "simulate": "node src/simulate.js",
     "build:plugin": "mkdir -p plugin-src/build && javac -cp ~/hytale-server/HytaleServer.jar -d plugin-src/build plugin-src/com/daniel/hyrcon/HyRconPlugin.java && cp plugin-src/manifest.json plugin-src/build/manifest.json && jar cf plugin-src/HyRCON.jar -C plugin-src/build . && cp plugin-src/HyRCON.jar ~/hytale-server/mods/HyRCON.jar && rm -rf plugin-src/build"
+  },
+  "build": {
+    "appId": "com.daniel.hytaletiktokrcon",
+    "productName": "HytaleTikTokLive",
+    "files": [
+      "src/**/*",
+      "public/**/*",
+      "config/gifts.json",
+      "plugin-src/HyRCON.jar",
+      ".env.example",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Game",
+      "icon": "public/icon.svg"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "public/icon.svg"
+    }
   },
   "dependencies": {
     "dotenv": "latest",
     "rcon-client": "latest",
     "tiktok-live-connector": "latest"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0"
   }
 }

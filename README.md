@@ -8,6 +8,7 @@ Permite spawnear enemigos en la posición exacta del jugador, entregar armas/com
 
 ## ✨ Características Principales
 
+- **Interfaz Gráfica Web (Dashboard Visual):** Panel de control en `http://localhost:3000` (`npm run gui`) que descarga dinámicamente los **281+ Mobs de Hytale** con su nombre, imagen y Role ID (desde `hytaleguide.net/mobs` + validación local con `Assets.zip`) y los **1,690+ Regalos de TikTok** con su icono y precio en monedas (desde `streamtoearn.io/gifts` y la API Webcast de TikTok). Permite seleccionar visualmente qué mob sale en cada regalo o evento y probarlos en Hytale con un clic.
 - **100% Gratuito y Sin Límites:** Incluye un bypass en [`src/index.js`](src/index.js) para obtener el catálogo de regalos directamente desde la API Webcast de TikTok (`signRequest = false`), evitando el bloqueo de pago (*Business Plan*) de EulerStream.
 - **Plugin RCON Propio para Hytale (`TikTokBridge:HyRCON`):** Código fuente en Java incluido en [`plugin-src/`](plugin-src/) que implementa el protocolo Source RCON en `127.0.0.1:25575` y añade el prefijo especial `as <jugador> <comando>` para ejecutar comandos como `/npc spawn` exactamente en las coordenadas donde está parado el jugador.
 - **Recarga en Caliente (Hot-Reload):** Puedes editar [`config/gifts.json`](config/gifts.json) en pleno directo y los cambios se aplican al instante en el siguiente regalo sin reiniciar el bot ni el servidor.
@@ -27,8 +28,14 @@ hytale-tiktok-rcon/
 │   ├── README.md                # Documentación independiente del mod HyRCON
 │   └── com/daniel/hyrcon/
 │       └── HyRconPlugin.java    # Servidor RCON TCP + ejecutor de comandos en contexto de jugador
+├── public/                      # Interfaz Gráfica Web (Dashboard Hytale x TikTok)
+│   ├── index.html               # Estructura del panel visual y configurador
+│   ├── styles.css               # Diseño oscuro estilo gaming
+│   └── app.js                   # Lógica de catálogos dinámicos y editor de reglas
 ├── src/
-│   ├── index.js                 # Conector principal a TikTok Live + RCON
+│   ├── index.js                 # Conector principal a TikTok Live + RCON + GUI
+│   ├── guiServer.js             # Servidor HTTP local y API REST (http://localhost:3000)
+│   ├── catalogService.js        # Scraper/API dinámico de Mobs de Hytale y Regalos de TikTok
 │   ├── giftHandler.js           # Procesador de regalos, combos, likes y follows
 │   ├── rconClient.js            # Cliente RCON con reconexión automática y modo simulador
 │   └── simulate.js              # Simulador interactivo por consola
@@ -98,7 +105,15 @@ Verás el mensaje:
 
 ## 🎮 Uso
 
-### Probar regalos sin estar en directo en TikTok
+### 🌐 1. Abrir la Interfaz Gráfica Web (Recomendado)
+Para abrir el panel visual donde puedes explorar todos los **Mobs de Hytale con imagen**, buscar **Regalos de TikTok con su icono y precio**, asignarlos visualmente y probarlos con un clic en tu servidor:
+```bash
+npm run gui
+```
+Luego abre en tu navegador: **`http://localhost:3000`**
+*(Nota: Al ejecutar `npm start` también se inicia automáticamente la interfaz gráfica en `http://localhost:3000`).*
+
+### 🧪 2. Probar regalos por consola sin estar en directo en TikTok
 Con tu servidor de Hytale encendido y tu personaje dentro del mundo (`127.0.0.1:5520`), ejecuta:
 ```bash
 npm run simulate

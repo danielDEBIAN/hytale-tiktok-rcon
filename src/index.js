@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { TikTokLiveConnection, WebcastEvent, ControlEvent, RouteConfig } from 'tiktok-live-connector';
 import { HytaleRconClient } from './rconClient.js';
 import { GiftHandler } from './giftHandler.js';
+import { startGuiServer } from './guiServer.js';
 
 // Parche 100% gratuito: En tiktok-live-connector v2, fetchRoomGifts intenta firmar la petición
 // usando fetchWebcastSignatureFromEulerRoute (que requiere plan Business de pago en EulerStream).
@@ -43,6 +44,7 @@ async function main() {
   console.log('----------------------------------------------------\n');
 
   await rconClient.connect();
+  await startGuiServer({ rconClient, giftHandler });
 
   if (!tiktokUsername || tiktokUsername === 'tu_usuario_tiktok') {
     console.warn('⚠️ Aún no has configurado tu TIKTOK_USERNAME en el archivo .env.');

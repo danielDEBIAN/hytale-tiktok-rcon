@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hytale x TikTok Live — Panel de Control RCON</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="hytale-top-trim"></div>
+  <!-- Barra Superior -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="brand-logo" aria-hidden="true">
+        <svg fill="#ffe98d" viewBox="0 0 63.78 70" width="28" height="30">
+          <path d="M63.78 70H51.89V41.49h-21.8V70H18.24V0h11.85v27.92h21.8V0h11.89Z"/>
+          <path d="M34.65 42.85V50a12.2 12.2 0 0 1-3.21.88v9.41a37 37 0 0 0 15.06-4V42.85ZM12.48 35.26q0-7.29 4.4-11.72v-12A26.5 26.5 0 0 0 8 16.86q-8 7.31-8 18.91t7.32 18.11a24.44 24.44 0 0 0 9.56 5.2V47.22c-.08-.08-4.4-3.37-4.4-11.96M44.23 13.14A44.5 44.5 0 0 0 31.44 11v9.3a29.6 29.6 0 0 1 12.79 3.24Z"/>
+        </svg>
+      </div>
+      <div>
+        <h1>HYTALE <span class="accent-x">×</span> TIKTOK LIVE</h1>
+        <p class="subtitle">Forja de Eventos, Regalos y Criaturas de Orbis · RCON</p>
+      </div>
+    </div>
+
+    <div class="topbar-settings">
+      <div class="setting-field">
+        <label for="envPlayerName">👤 Jugador Hytale</label>
+        <input type="text" id="envPlayerName" placeholder="PaletaChupada" />
+      </div>
+      <div class="setting-field">
+        <label for="envTiktokUser">🎥 Usuario TikTok</label>
+        <input type="text" id="envTiktokUser" placeholder="@usuario" />
+      </div>
+      <div class="setting-field toggle-field">
+        <label for="envMockMode">🛠️ Modo RCON</label>
+        <button type="button" id="envMockModeBtn" class="status-pill">Cargando...</button>
+      </div>
+      <button type="button" id="saveEnvBtn" class="btn btn-secondary btn-sm">💾 Guardar Ajustes</button>
+    </div>
+  </header>
+
+  <!-- Panel de Estado en Tiempo Real (Servidor Hytale RCON + Directo TikTok Live) -->
+  <section class="status-banner-bar" aria-label="Estado de conexiones">
+    <div id="rconStatusCard" class="status-card status-checking">
+      <div class="status-orb"></div>
+      <div class="status-content">
+        <div class="status-label">🏰 SERVIDOR HYTALE (RCON)</div>
+        <div id="rconStatusTitle" class="status-title">Verificando servidor Hytale...</div>
+        <div id="rconStatusMsg" class="status-msg">Comprobando conexión en 127.0.0.1:25575...</div>
+      </div>
+    </div>
+
+    <div id="tiktokStatusCard" class="status-card status-checking">
+      <div class="status-orb"></div>
+      <div class="status-content">
+        <div class="status-label">📡 ESTADO DE TIKTOK LIVE</div>
+        <div id="tiktokStatusTitle" class="status-title">Verificando usuario de TikTok...</div>
+        <div id="tiktokStatusMsg" class="status-msg">Consultando si la cuenta está en directo (LIVE)...</div>
+      </div>
+    </div>
+
+    <div class="status-actions">
+      <button type="button" id="quickToggleServerBtn" class="btn btn-primary btn-sm">
+        ▶️ Iniciar Servidor Hytale
+      </button>
+      <button type="button" id="checkStatusNowBtn" class="btn btn-secondary btn-sm">
+        🔄 Verificar Estado Ahora
+      </button>
+    </div>
+  </section>
+
+  <!-- Navegación de Pestañas -->
+  <nav class="tabs-nav">
+    <div class="tabs-left">
+      <button type="button" class="tab-btn active" data-tab="rules">
+        🎛️ Mis Reglas Configuradas <span id="rulesCountBadge" class="badge">0</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="mobs">
+        👾 Catálogo de Mobs Hytale <span id="mobsCountBadge" class="badge">...</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="gifts">
+        🎁 Catálogo de Regalos TikTok <span id="giftsCountBadge" class="badge">...</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="server">
+        🏰 Servidor Hytale (Control y Ajustes)
+      </button>
+    </div>
+    <div class="tabs-right">
+      <button type="button" id="newRuleBtn" class="btn btn-primary">
+        ➕ Nueva Regla (Regalo / Mob)
+      </button>
+    </div>
+  </nav>
+
+  <!-- Contenedor Principal -->
+  <main class="main-container">
+    <!-- TAB 1: MIS REGLAS CONFIGURADAS -->
+    <section id="tab-rules" class="tab-panel active">
+      <div class="section-header">
+        <div>
+          <h2>🎁 Regalos de TikTok Configurados</h2>
+          <p>Selecciona qué mobs spawnean o qué comandos se ejecutan cuando te envían cada regalo en directo.</p>
+        </div>
+        <button type="button" id="addGiftRuleBtn" class="btn btn-primary">
+          ➕ Agregar Regalo
+        </button>
+      </div>
+
+      <div id="configuredGiftsGrid" class="rules-grid"></div>
+
+      <div class="section-header mt-lg">
+        <div>
+          <h2>⚡ Eventos Especiales del Directo</h2>
+          <p>Configura qué mob aparece o qué ocurre cuando alguien te sigue, llegas a una meta de likes o envían un regalo no listado.</p>
+        </div>
+      </div>
+
+      <div id="specialEventsGrid" class="rules-grid special-grid"></div>
+    </section>
+
+    <!-- TAB 2: CATÁLOGO DE MOBS HYTALE -->
+    <section id="tab-mobs" class="tab-panel">
+      <div class="catalog-toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="mobCatalogSearch" placeholder="Buscar mob por nombre o Role ID (ej. Goblin, Skeleton, Void, Bear)..." />
+        </div>
+        <div class="filter-pills" id="mobCategoryPills"></div>
+        <button type="button" id="refreshMobsBtn" class="btn btn-secondary btn-sm" title="Actualizar desde hytaleguide.net y Assets.zip">
+          🔄 Sincronizar Mobs
+        </button>
+      </div>
+      <div id="mobsCatalogGrid" class="entity-grid"></div>
+    </section>
+
+    <!-- TAB 3: CATÁLOGO DE REGALOS TIKTOK -->
+    <section id="tab-gifts" class="tab-panel">
+      <div class="catalog-toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="giftCatalogSearch" placeholder="Buscar regalo de TikTok por nombre (ej. Rose, GG, Corgi,Doughnut, Galaxy)..." />
+        </div>
+        <div class="filter-pills" id="giftPricePills">
+          <button type="button" class="pill active" data-price="all">Todos</button>
+          <button type="button" class="pill" data-price="1">🪙 1 Moneda</button>
+          <button type="button" class="pill" data-price="2-10">🪙 2 - 10</button>
+          <button type="button" class="pill" data-price="11-99">🪙 11 - 99</button>
+          <button type="button" class="pill" data-price="100-999">🪙 100 - 999</button>
+          <button type="button" class="pill" data-price="1000+">🪙 1000+</button>
+        </div>
+        <button type="button" id="refreshGiftsBtn" class="btn btn-secondary btn-sm" title="Actualizar desde streamtoearn.io y TikTok Webcast">
+          🔄 Sincronizar Regalos
+        </button>
+      </div>
+      <div id="giftsCatalogGrid" class="entity-grid"></div>
+    </section>
+
+    <!-- TAB 4: SERVIDOR HYTALE (CONTROL, CONSOLA Y CONFIGURACIÓN) -->
+    <section id="tab-server" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <h2>🏰 Panel de Control y Configuración del Servidor de Hytale</h2>
+          <p>Inicia o detén tu servidor dedicado de Hytale, ejecuta comandos en vivo y personaliza las reglas de tu mundo de Orbis.</p>
+        </div>
+        <div class="server-power-buttons">
+          <button type="button" id="startServerBtn" class="btn btn-primary">
+            ▶️ Iniciar Servidor Hytale
+          </button>
+          <button type="button" id="stopServerBtn" class="btn btn-danger">
+            ⏹️ Detener Servidor
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Carpeta del Servidor e Instalación 1-Clic de HyRCON.jar -->
+      <div class="catalog-toolbar server-folder-bar">
+        <div class="server-folder-left">
+          <span class="step-badge">📂 Carpeta del Servidor Hytale</span>
+          <div class="folder-input-group">
+            <input type="text" id="hytaleServerDirInput" placeholder="~/hytale-server o C:\hytale-server" />
+            <button type="button" id="browseServerDirBtn" class="btn btn-secondary btn-sm">
+              📂 Elegir Carpeta...
+            </button>
+            <button type="button" id="saveServerDirBtn" class="btn btn-secondary btn-sm">
+              Aplicar Ruta
+            </button>
+          </div>
+          <div id="serverFilesCheckRow" class="rule-gift-meta"></div>
+        </div>
+        <div class="server-folder-right">
+          <button type="button" id="installHyRconModBtn" class="btn btn-success btn-sm">
+            ⚡ Instalar / Actualizar Mod HyRCON.jar (1 Clic)
+          </button>
+        </div>
+      </div>
+
+      <div class="server-grid-layout">
+        <!-- COLUMNA IZQUIERDA: CONSOLA EN VIVO Y ACCIONES RÁPIDAS -->
+        <div class="server-panel-card">
+          <div class="panel-card-header">
+            <h3>📜 Consola del Servidor Hytale en Vivo</h3>
+            <span id="serverProcessBadge" class="coin-tag">Estado: Verificando...</span>
+          </div>
+
+          <div class="quick-world-actions">
+            <button type="button" class="btn btn-secondary btn-sm" data-world-cmd="time set day">☀️ Día</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-world-cmd="time set noon">🕛 Mediodía</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-world-cmd="time set night">🌙 Noche</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-world-cmd="weather set clear">🌤️ Clima Despejado</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="opCurrentPlayerBtn">👑 Dar OP a mi Jugador</button>
+          </div>
+
+          <pre id="hytaleConsoleBox" class="console-log-box">Cargando registros del servidor...</pre>
+
+          <form id="consoleCommandForm" class="console-input-row">
+            <input type="text" id="consoleCommandInput" placeholder="Escribe un comando de servidor Hytale (ej. op add PaletaChupada, say Hola, plugin list)..." />
+            <button type="submit" class="btn btn-primary btn-sm">Enviar Comando</button>
+          </form>
+        </div>
+
+        <!-- COLUMNA DERECHA: CONFIGURACIÓN DEL SERVIDOR Y DEL MUNDO -->
+        <div class="server-panel-card">
+          <div class="panel-card-header">
+            <h3>⚙️ Ajustes del Servidor y del Mundo (`config.json`)</h3>
+            <button type="button" id="saveHytaleConfigBtn" class="btn btn-primary btn-sm">
+              💾 Guardar Configuración
+            </button>
+          </div>
+
+          <div class="server-settings-form">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="srvName">🏷️ Nombre del Servidor (`ServerName`)</label>
+                <input type="text" id="srvName" placeholder="Hytale Server" />
+              </div>
+              <div class="form-group">
+                <label for="srvPassword">🔒 Contraseña del Servidor (vacío = público)</label>
+                <input type="text" id="srvPassword" placeholder="Sin contraseña" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="srvMotd">📣 Mensaje del Día / Descripción (`MOTD`)</label>
+              <input type="text" id="srvMotd" placeholder="¡Bienvenidos a mi servidor de Hytale x TikTok Live!" />
+            </div>
+
+            <div class="form-row-3">
+              <div class="form-group">
+                <label for="srvGameMode">🎮 Modo de Juego (`GameMode`)</label>
+                <select id="srvGameMode">
+                  <option value="Adventure">Adventure (Aventura / Supervivencia)</option>
+                  <option value="Creative">Creative (Creativo)</option>
+                  <option value="Exploration">Exploration (Exploración)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="srvMaxPlayers">👥 Jugadores Máximos</label>
+                <input type="number" id="srvMaxPlayers" min="1" max="1000" value="100" />
+              </div>
+              <div class="form-group">
+                <label for="srvViewRadius">🔭 Distancia de Visión (Chunks)</label>
+                <input type="number" id="srvViewRadius" min="4" max="64" value="32" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="srvMinRam">🧠 Memoria RAM Mínima Java (GB)</label>
+                <input type="number" id="srvMinRam" min="1" max="32" value="4" />
+              </div>
+              <div class="form-group">
+                <label for="srvMaxRam">🚀 Memoria RAM Máxima Java (GB)</label>
+                <input type="number" id="srvMaxRam" min="2" max="64" value="6" />
+              </div>
+            </div>
+
+            <div class="world-toggles-box">
+              <div class="step-badge">🌍 Reglas del Mundo (`universe/worlds/default/config.json`)</div>
+              <div class="toggles-grid">
+                <label class="checkbox-row">
+                  <input type="checkbox" id="wldPvp" />
+                  <span>⚔️ Activar PvP entre jugadores (`IsPvpEnabled`)</span>
+                </label>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="wldFallDamage" checked />
+                  <span>🦴 Daño por caída activo (`IsFallDamageEnabled`)</span>
+                </label>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="wldSpawningNpc" checked />
+                  <span>👾 Generación natural de Mobs/NPCs (`IsSpawningNPC`)</span>
+                </label>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="wldTimePaused" />
+                  <span>⏸️ Pausar ciclo Día / Noche (`IsGameTimePaused`)</span>
+                </label>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="wldNpcFrozen" />
+                  <span>🧊 Congelar IA de todos los NPCs (`IsAllNPCFrozen`)</span>
+                </label>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="wldSaving" checked />
+                  <span>💾 Guardar mundo y jugadores automáticamente</span>
+                </label>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="srvRequirePerm" />
+                  <span>🛡️ Requerir permiso para entrar (`RequireJoinPermission`)</span>
+                </label>
+              </div>
+            </div>
+            <small class="hint">💡 Nota: Los cambios en `config.json` se guardan al instante; si el servidor ya está encendido, algunos ajustes del mundo aplican al reiniciar el servidor.</small>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL / EDITOR VISUAL DE REGLA (SELECCIONAR REGALO/EVENTO + SELECCIONAR MOBS) -->
+  <div id="ruleModalBackdrop" class="modal-backdrop hidden">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 id="modalTitle">✨ Configurar Regalo / Evento y Mobs</h2>
+        <button type="button" id="closeModalBtn" class="modal-close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- COLUMNA IZQUIERDA: 1. ELEGIR DISPARADOR (REGALO O EVENTO) -->
+        <div class="builder-column">
+          <div class="step-badge">Paso 1 · ¿Cuándo va a ocurrir?</div>
+
+          <div class="trigger-type-selector">
+            <button type="button" class="trigger-type-btn active" data-trigger="gift">🎁 Regalo de TikTok</button>
+            <button type="button" class="trigger-type-btn" data-trigger="follow">➕ Nuevo Seguidor</button>
+            <button type="button" class="trigger-type-btn" data-trigger="likeMilestone">❤️ Meta de Likes</button>
+            <button type="button" class="trigger-type-btn" data-trigger="defaultGift">🎲 Regalo por Defecto</button>
+          </div>
+
+          <!-- Selector de Regalo de TikTok -->
+          <div id="triggerGiftSection" class="trigger-section">
+            <div class="selected-banner" id="selectedGiftBanner">
+              <div class="selected-banner-empty">Selecciona un regalo de TikTok abajo 👇</div>
+            </div>
+
+            <div class="mini-toolbar">
+              <input type="text" id="modalGiftSearch" placeholder="🔍 Buscar regalo (Rose, GG, Corgi, Heart...)" />
+              <select id="modalGiftPriceFilter">
+                <option value="all">Todas las monedas</option>
+                <option value="1">1 moneda</option>
+                <option value="2-10">2 - 10 monedas</option>
+                <option value="11-99">11 - 99 monedas</option>
+                <option value="100-999">100 - 999 monedas</option>
+                <option value="1000+">1000+ monedas</option>
+              </select>
+            </div>
+
+            <div id="modalGiftsPickerGrid" class="picker-grid"></div>
+          </div>
+
+          <!-- Opciones para Eventos Especiales -->
+          <div id="triggerSpecialSection" class="trigger-section hidden">
+            <div class="special-event-box">
+              <label class="checkbox-row">
+                <input type="checkbox" id="modalSpecialEnabled" checked />
+                <span>Activar este evento especial en el directo</span>
+              </label>
+              <div id="modalLikesEveryGroup" class="form-group mt-sm hidden">
+                <label for="modalEveryLikes">Ejecutar cada cuántos Likes acumulados:</label>
+                <input type="number" id="modalEveryLikes" min="10" step="10" value="100" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Ajustes de la Regla -->
+          <div class="rule-options-box">
+            <div class="form-group">
+              <label for="modalDescription">Descripción de la regla:</label>
+              <input type="text" id="modalDescription" placeholder="Ej. Spawnea un Goblin Burner cerca del jugador" />
+            </div>
+
+            <div id="modalComboGroup" class="form-group">
+              <label class="checkbox-row">
+                <input type="checkbox" id="modalScaleCombo" checked />
+                <span>🔥 <strong>Escalar con Combo:</strong> Si envían 5x regalos en combo, spawnear 5 veces</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label for="modalSayMessage">💬 Mensaje en el chat del servidor Hytale (opcional):</label>
+              <input type="text" id="modalSayMessage" placeholder="¡{user} envió {repeatCount}x {giftName}!" />
+              <small class="hint">Variables: <code>{user}</code>, <code>{player}</code>, <code>{giftName}</code>, <code>{repeatCount}</code></small>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: 2. ELEGIR MOBS DE HYTALE (Y COMANDOS EXTRA) -->
+        <div class="builder-column">
+          <div class="step-badge">Paso 2 · ¿Qué Mobs de Hytale van a salir?</div>
+
+          <!-- Lista de Mobs ya seleccionados para esta regla -->
+          <div class="selected-mobs-panel">
+            <div class="panel-Label-row">
+              <span>👾 Mobs asignados a este evento:</span>
+              <button type="button" id="clearSelectedMobsBtn" class="btn-link">Limpiar mobs</button>
+            </div>
+            <div id="selectedMobsList" class="selected-mobs-list"></div>
+          </div>
+
+          <!-- Buscador visual de Mobs de Hytale -->
+          <div class="mini-toolbar">
+            <input type="text" id="modalMobSearch" placeholder="🔍 Buscar Mob de Hytale (ej. Skeleton, Goblin, Void, Dragon, Bear)..." />
+            <select id="modalMobCategoryFilter">
+              <option value="all">Todas las categorías</option>
+            </select>
+          </div>
+
+          <div id="modalMobsPickerGrid" class="picker-grid mobs-picker"></div>
+
+          <!-- Comandos adicionales (ej. give items) -->
+          <div class="extra-commands-box">
+            <label for="modalExtraCommands">🛠️ Comandos extra opcionales (1 por línea, ej. <code>give {player} Food_Pie_Apple</code>):</label>
+            <textarea id="modalExtraCommands" rows="2" placeholder="give {player} Food_Pie_Apple"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="cancelModalBtn" class="btn btn-secondary">Cancelar</button>
+        <button type="button" id="saveRuleBtn" class="btn btn-primary btn-lg">💾 Guardar Regla en Hytale</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notificación Toast -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
