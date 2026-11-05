@@ -2,19 +2,27 @@
   "_comment": "Variables disponibles en los comandos: {player} (tu usuario en Hytale), {user} (quien envió el regalo en TikTok), {giftName} (nombre del regalo), {repeatCount} (cantidad enviada en combo). El prefijo 'as {player}' ejecuta el comando en la posición exacta del jugador dentro del mundo.",
   "gifts": {
     "Rose": {
-      "description": "Da un pay de manzana curativo al jugador",
+      "description": "Spawnea una Rata cerca del jugador",
       "scaleWithCombo": true,
       "commands": [
         "say [TikTok] ¡{user} envió {repeatCount}x Rosa! Dando comida a {player}.",
+        "as {player} npc spawn Wolf_Black"
+      ]
+    },
+    "You're awesome": {
+      "description": "Da un pay de manzana curativo al jugador",
+      "scaleWithCombo": true,
+      "commands": [
+        "say [TikTok] ¡{user} envió {repeatCount}x You're awesome! Dando comida a {player}.",
         "give {player} Food_Pie_Apple"
       ]
     },
     "GG": {
-      "description": "Spawnea un Esqueleto cerca del jugador",
+      "description": "Spawnea un Duende Lanzador cerca del jugador",
       "scaleWithCombo": true,
       "commands": [
-        "say [TikTok] ¡{user} envió {repeatCount}x GG! ¡Un Esqueleto aparece!",
-        "as {player} npc spawn Skeleton"
+        "say [TikTok] ¡{user} envió {repeatCount}x GG! ¡Un Duende Lanzador aparece!",
+        "as {player} npc spawn Goblin_Lobber"
       ]
     },
     "Finger Heart": {
@@ -22,7 +30,7 @@
       "scaleWithCombo": false,
       "commands": [
         "say [TikTok] ¡{user} envió un Corazón! {player} recibe una Espada de Hierro.",
-        "give {player} Weapon_Sword_Iron"
+        "give {player} Weapon_Sword_Steel"
       ]
     },
     "Doughnut": {
@@ -56,8 +64,8 @@
     "follow": {
       "enabled": true,
       "commands": [
-        "say [TikTok] ¡Gracias por seguir el canal, {user}! Spawneando un Goblin sorpresa...",
-        "as {player} npc spawn Dungeon_Goblin_Scrapper"
+        "say [TikTok] ¡Gracias por seguirme, {user}! Spawneando un Goblin sorpresa...",
+        "as {player} npc spawn Goblin_Lobber"
       ]
     }
   },
